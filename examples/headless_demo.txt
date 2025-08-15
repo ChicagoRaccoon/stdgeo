@@ -1,0 +1,11 @@
+# StdGeo Headless Mode Demo Script
+# Lines starting with # are comments
+
+help
+cube 2.0
+stats
+cube 5.0
+stats
+clear
+stats
+exit

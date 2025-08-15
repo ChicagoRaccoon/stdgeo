@@ -1,0 +1,44 @@
+# Stress Test Example
+# Tests system performance with rapid operations
+
+# Rapid cube creation and clearing
+cube 1.0
+clear
+cube 2.0
+clear
+cube 3.0
+clear
+cube 4.0
+clear
+cube 5.0
+clear
+
+# Large cube operations
+cube 1000.0
+stats
+clear
+
+cube 10000.0
+stats  
+clear
+
+# Very small cube operations
+cube 0.001
+stats
+clear
+
+cube 0.0001
+stats
+clear
+
+# Test edge cases
+cube 0.0
+stats
+clear
+
+# Negative size (should handle gracefully)
+cube -1.0
+stats
+clear
+
+exit

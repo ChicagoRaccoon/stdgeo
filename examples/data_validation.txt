@@ -1,0 +1,24 @@
+# Data Validation Example
+# Validates that cube properties are mathematically correct
+
+# Create unit cube and verify 8 vertices
+cube 1.0
+stats
+
+# Create 2x2x2 cube - should still have 8 vertices  
+cube 2.0
+stats
+
+# Create large cube - verify scaling
+cube 10.0
+stats
+
+# Verify clearing works
+clear
+stats
+
+# Verify recreation
+cube 5.0
+stats
+
+exit

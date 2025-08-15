@@ -1,0 +1,44 @@
+# Error Handling Example
+# Tests how the system handles various edge cases and errors
+
+# Valid operations first
+cube 1.0
+stats
+
+# Test invalid commands
+invalid_command
+nonexistent_cmd
+cube_typo
+
+# Test invalid parameters
+cube
+cube invalid_size
+cube -5.0
+cube abc
+cube 1.0 2.0 3.0
+
+# Test boundary conditions
+cube 0.0
+stats
+
+clear
+
+# Very large number
+cube 999999999.0
+stats
+
+clear
+
+# Very small number
+cube 0.000001
+stats
+
+clear
+
+# Multiple consecutive operations
+cube 1.0
+cube 2.0
+cube 3.0
+stats
+
+exit

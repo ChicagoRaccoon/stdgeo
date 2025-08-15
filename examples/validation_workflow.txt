@@ -1,0 +1,31 @@
+# Validation Workflow Example
+# Systematic testing of geometry properties
+
+# Test 1: Unit cube validation
+cube 1.0
+stats
+
+# Test 2: Verify doubling size effects
+cube 2.0
+stats
+
+# Test 3: Large scale validation
+cube 10.0
+stats
+
+# Test 4: Precision test with decimal
+cube 1.5
+stats
+
+# Test 5: Clear functionality
+clear
+stats
+
+# Test 6: Recreation after clear
+cube 3.14159
+stats
+
+# Test 7: Final cleanup
+clear
+
+exit

@@ -1,0 +1,24 @@
+# Basic Geometry Operations Example
+# Demonstrates fundamental cube creation and manipulation
+
+# Show help to understand available commands
+help
+
+# Create a unit cube
+cube 1.0
+stats
+
+# Create a larger cube  
+cube 5.0
+stats
+
+# Clear and create another cube
+clear
+cube 3.5
+stats
+
+# Clear all geometry
+clear
+stats
+
+exit

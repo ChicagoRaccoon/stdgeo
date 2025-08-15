@@ -1,18 +1,29 @@
 [package]
-name = "hello_world"
+name = "stdgeo"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "stdgeo"
+crate-type = ["cdylib", "rlib"]
+
+# Primary headless binary
+[[bin]]
+name = "stdgeo"
+path = "src/bin/stdgeo.rs"
+
+# Test binary (keep existing)
+[[bin]]
+name = "stdgeo_test"
+path = "src/main.rs"
+
 [dependencies]
+libc = "0.2"
+atty = "0.2"
 
-
-# For a simple hello-world build, this configuration produces a 10x smaller executable
 [profile.release]
-strip = true             # Remove debug symbols
-opt-level = "z"          # Optimize for size
-lto = true               # Link-time optimization
-codegen-units = 1        # Better optimization
-panic = "abort"          # Don't include unwinding code
-overflow-checks = false
-debug = false
-
+strip = true
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

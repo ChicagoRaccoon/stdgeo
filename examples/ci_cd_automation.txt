@@ -1,0 +1,27 @@
+# CI/CD Automation Example
+# Script designed for continuous integration testing
+
+# Test basic functionality
+cube 2.0
+stats
+
+# Verify stats show expected vertex count (should be 8)
+# Verify stats show expected triangle count (should be 12)
+
+# Test edge case
+cube 0.1
+stats
+
+# Test large scale
+cube 100.0
+stats  
+
+# Cleanup test
+clear
+stats
+
+# Final validation
+cube 1.0
+stats
+
+exit

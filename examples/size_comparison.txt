@@ -1,0 +1,24 @@
+# Cube Size Comparison Example
+# Creates cubes of different sizes to compare their properties
+
+# Tiny cube
+cube 0.1
+stats
+
+# Small cube
+cube 1.0  
+stats
+
+# Medium cube
+cube 2.0
+stats
+
+# Large cube
+cube 10.0
+stats
+
+# Extra large cube
+cube 100.0
+stats
+
+exit

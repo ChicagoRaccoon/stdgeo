@@ -1,0 +1,42 @@
+# Batch Processing Example
+# Demonstrates automated geometry processing workflow
+
+# Process a series of cubes with mathematical progression
+cube 1.0
+stats
+
+cube 1.41421356237
+stats
+
+cube 2.0
+stats
+
+cube 2.82842712475
+stats
+
+cube 4.0
+stats
+
+# Clear between operations
+clear
+
+# Process cubes with Fibonacci-like sizes
+cube 1.0
+stats
+
+cube 1.0
+stats
+
+cube 2.0
+stats
+
+cube 3.0  
+stats
+
+cube 5.0
+stats
+
+cube 8.0
+stats
+
+exit

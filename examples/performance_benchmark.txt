@@ -1,0 +1,22 @@
+# Performance Benchmark Example
+# Measures geometry operation timing
+
+# Small cubes (should be fast)
+cube 0.1
+cube 0.5
+cube 1.0
+cube 1.5
+cube 2.0
+
+# Medium cubes  
+cube 5.0
+cube 10.0
+cube 15.0
+cube 20.0
+
+# Large cubes (may take more time)
+cube 50.0
+cube 100.0
+cube 200.0
+
+exit
