@@ -1,12 +1,8 @@
-[package]
-name = "hello_world"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["stdgeo-cli", "stdgeo-lib"]
+resolver = "2"
 
-[dependencies]
-
-
-# For a simple hello-world build, this configuration produces a 10x smaller executable
+# Workspace profiles apply to all members of the workspace
 [profile.release]
 strip = true             # Remove debug symbols
 opt-level = "z"          # Optimize for size

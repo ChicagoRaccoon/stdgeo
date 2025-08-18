@@ -1,0 +1,17 @@
+[package]
+name = "stdgeo-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdgeo"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+stdgeo-lib = { path = "../stdgeo-lib" }
+anyhow = "1.0"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.0"
