@@ -27,6 +27,7 @@
 
 pub mod geometry;
 pub mod io;
+pub mod ffi;
 
 pub use geometry::*;
 pub use io::*;

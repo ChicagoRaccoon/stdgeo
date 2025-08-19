@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(stdgeo LANGUAGES NONE)
+project(stdgeo LANGUAGES CXX)
 
 # Find Rust/Cargo
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
@@ -39,6 +39,16 @@ add_custom_target(
     DEPENDS cargo_build
 )
 
+# Qt tests target
+if(BUILD_QT_VIEWER AND Qt6_FOUND)
+    add_custom_target(
+        qt_test
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target run_qt_tests
+        COMMENT "Running Qt application tests"
+        DEPENDS qt_viewer
+    )
+endif()
+
 # Custom target to run clippy
 add_custom_target(
     cargo_clippy
@@ -74,6 +84,15 @@ install(
     COMPONENT Runtime
 )
 
+# Install Qt viewer if built
+if(BUILD_QT_VIEWER AND Qt6_FOUND)
+    install(
+        TARGETS stdgeo-qt-viewer
+        DESTINATION bin
+        COMPONENT Runtime
+    )
+endif()
+
 # Clean target
 add_custom_target(
     cargo_clean
@@ -101,8 +120,27 @@ add_custom_target(
     DEPENDS cargo_build
 )
 
+# Qt6 application
+option(BUILD_QT_VIEWER "Build Qt6 geometry viewer" ON)
+
+if(BUILD_QT_VIEWER)
+    find_package(Qt6 QUIET COMPONENTS Core Widgets OpenGL OpenGLWidgets)
+    if(Qt6_FOUND)
+        add_subdirectory(qt-viewer)
+        add_custom_target(qt_viewer DEPENDS stdgeo-qt-viewer)
+        message(STATUS "Qt6 found - building Qt viewer")
+    else()
+        message(WARNING "Qt6 not found - skipping Qt viewer")
+        set(BUILD_QT_VIEWER OFF)
+    endif()
+endif()
+
 # Add an alias for the main build target
-add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy)
+if(BUILD_QT_VIEWER AND Qt6_FOUND)
+    add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy qt_viewer)
+else()
+    add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy)
+endif()
 
 # Print build information
 message(STATUS "Rust toolchain information:")
