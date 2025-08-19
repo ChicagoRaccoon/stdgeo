@@ -486,6 +486,121 @@ impl Session {
         println!("Saved {} geometry objects to {}", self.geometries.len(), filename);
         Ok(())
     }
+
+    /// Execute a single command (used for non-interactive mode)
+    fn execute_single_command(&mut self, command: &Commands) -> Result<()> {
+        match command {
+            Commands::Point { x, y, output } => {
+                self.create_point(&[&x.to_string(), &y.to_string()])?;
+                if let Some(output_path) = output {
+                    write_geometry_file(output_path, &self.geometries)?;
+                    println!("Point saved to {}", output_path.display());
+                } else {
+                    println!("Point: ({}, {})", x, y);
+                }
+            }
+            
+            Commands::Line { x1, y1, x2, y2, output } => {
+                self.create_line(&[&x1.to_string(), &y1.to_string(), 
+                                  &x2.to_string(), &y2.to_string()])?;
+                if let Some(output_path) = output {
+                    write_geometry_file(output_path, &self.geometries)?;
+                    println!("Line saved to {}", output_path.display());
+                } else {
+                    println!("Line: ({}, {}) to ({}, {})", x1, y1, x2, y2);
+                }
+            }
+            
+            Commands::Read { input, simple } => {
+                let filename = input.to_string_lossy();
+                if *simple {
+                    self.load_from_file(&[&filename, "--simple"])?;
+                } else {
+                    self.load_from_file(&[&filename])?;
+                }
+                self.list_geometries();
+            }
+            
+            Commands::Write { input, output, simple } => {
+                let geometries = read_geometry_file(input)?;
+                if *simple {
+                    write_simple_format(output, &geometries)?;
+                } else {
+                    write_geometry_file(output, &geometries)?;
+                }
+                println!("Wrote {} geometries to {}", geometries.len(), output.display());
+            }
+            
+            Commands::Translate { input, output, dx, dy, simple } => {
+                // Load geometries into session
+                let filename = input.to_string_lossy();
+                if *simple {
+                    self.load_from_file(&[&filename, "--simple"])?;
+                } else {
+                    self.load_from_file(&[&filename])?;
+                }
+                
+                // Apply translation
+                let dx_str = dx.to_string();
+                let dy_str = dy.to_string();
+                self.translate_all(&[&dx_str, &dy_str])?;
+                
+                // Save results
+                if *simple {
+                    write_simple_format(output, &self.geometries)?;
+                } else {
+                    write_geometry_file(output, &self.geometries)?;
+                }
+                println!("Translated {} geometries by ({}, {}) and saved to {}", 
+                    self.geometries.len(), dx, dy, output.display());
+            }
+            
+            Commands::Rotate { input, output, angle, center_x, center_y, degrees, simple } => {
+                // Load geometries into session
+                let filename = input.to_string_lossy();
+                if *simple {
+                    self.load_from_file(&[&filename, "--simple"])?;
+                } else {
+                    self.load_from_file(&[&filename])?;
+                }
+                
+                // Prepare rotation arguments
+                let angle_str = angle.to_string();
+                let center_x_str = center_x.to_string();
+                let center_y_str = center_y.to_string();
+                
+                let mut args: Vec<&str> = vec![&angle_str];
+                if *center_x != 0.0 || *center_y != 0.0 {
+                    args.push(&center_x_str);
+                    args.push(&center_y_str);
+                }
+                if *degrees {
+                    args.push("--degrees");
+                }
+                
+                // Apply rotation
+                self.rotate_all(&args)?;
+                
+                // Save results
+                if *simple {
+                    write_simple_format(output, &self.geometries)?;
+                } else {
+                    write_geometry_file(output, &self.geometries)?;
+                }
+                
+                let angle_unit = if *degrees { "degrees" } else { "radians" };
+                println!("Rotated {} geometries by {} {} around ({}, {}) and saved to {}", 
+                    self.geometries.len(), angle, angle_unit, center_x, center_y, output.display());
+            }
+            
+            Commands::Session => {
+                // This should never be reached due to the match in main
+                unreachable!("Session command should be handled in main")
+            }
+        }
+        
+        Ok(())
+    }
 }
 
 /// Main entry point for the CLI application.
@@ -501,136 +616,20 @@ impl Session {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     
-    // Dispatch to appropriate command handler
+    // Handle commands using unified session-based approach
     match cli.command {
-        // Handle point creation command
-        Commands::Point { x, y, output } => {
-            let point = Geometry::Point(Point::new(x, y));
-            if let Some(output_path) = output {
-                // Save point to file
-                write_geometry_file(&output_path, &[point])?;
-                println!("Point saved to {}", output_path.display());
-            } else {
-                // Display point to stdout
-                println!("Point: ({}, {})", x, y);
-            }
-        }
-        
-        // Handle line creation command
-        Commands::Line { x1, y1, x2, y2, output } => {
-            let line = Geometry::Line(Line::new(Point::new(x1, y1), Point::new(x2, y2)));
-            if let Some(output_path) = output {
-                // Save line to file
-                write_geometry_file(&output_path, &[line])?;
-                println!("Line saved to {}", output_path.display());
-            } else {
-                // Display line to stdout
-                println!("Line: ({}, {}) to ({}, {})", x1, y1, x2, y2);
-            }
-        }
-        
-        // Handle file reading and display command
-        Commands::Read { input, simple } => {
-            // Choose appropriate reader based on format flag
-            let geometries = if simple {
-                read_simple_format(&input)?
-            } else {
-                read_geometry_file(&input)?
-            };
-            
-            // Display summary and detailed listing
-            println!("Read {} geometries from {}", geometries.len(), input.display());
-            for (i, geometry) in geometries.iter().enumerate() {
-                match geometry {
-                    Geometry::Point(p) => println!("  {}: Point ({}, {})", i + 1, p.x, p.y),
-                    Geometry::Line(l) => println!("  {}: Line ({}, {}) to ({}, {})", 
-                        i + 1, l.start.x, l.start.y, l.end.x, l.end.y),
-                }
-            }
-        }
-        
-        // Handle file format conversion command
-        Commands::Write { input, output, simple } => {
-            // Always read input as JSON format
-            let geometries = read_geometry_file(&input)?;
-            
-            // Write in requested format
-            if simple {
-                write_simple_format(&output, &geometries)?;
-            } else {
-                write_geometry_file(&output, &geometries)?;
-            }
-            
-            println!("Wrote {} geometries to {}", geometries.len(), output.display());
-        }
-        
-        // Handle translation transformation command
-        Commands::Translate { input, output, dx, dy, simple } => {
-            // Read geometries using appropriate format
-            let geometries = if simple {
-                read_simple_format(&input)?
-            } else {
-                read_geometry_file(&input)?
-            };
-            
-            // Apply translation transformation to all geometries
-            let translated: Vec<Geometry> = geometries
-                .iter()
-                .map(|g| g.translate(dx, dy))
-                .collect();
-            
-            // Write results using appropriate format
-            if simple {
-                write_simple_format(&output, &translated)?;
-            } else {
-                write_geometry_file(&output, &translated)?;
-            }
-            
-            println!("Translated {} geometries by ({}, {}) and saved to {}", 
-                translated.len(), dx, dy, output.display());
-        }
-        
-        // Handle rotation transformation command
-        Commands::Rotate { input, output, angle, center_x, center_y, degrees, simple } => {
-            // Read geometries using appropriate format
-            let geometries = if simple {
-                read_simple_format(&input)?
-            } else {
-                read_geometry_file(&input)?
-            };
-            
-            // Convert angle to radians if necessary
-            let angle_rad = if degrees {
-                degrees_to_radians(angle)
-            } else {
-                angle
-            };
-            
-            // Apply rotation transformation around specified center
-            let center = Point::new(center_x, center_y);
-            let rotated: Vec<Geometry> = geometries
-                .iter()
-                .map(|g| g.rotate(angle_rad, center))
-                .collect();
-            
-            // Write results using appropriate format
-            if simple {
-                write_simple_format(&output, &rotated)?;
-            } else {
-                write_geometry_file(&output, &rotated)?;
-            }
-            
-            // Provide feedback with original angle units
-            let angle_unit = if degrees { "degrees" } else { "radians" };
-            println!("Rotated {} geometries by {} {} around ({}, {}) and saved to {}", 
-                rotated.len(), angle, angle_unit, center_x, center_y, output.display());
-        }
-        
         // Handle interactive session command
         Commands::Session => {
             let mut session = Session::new()
                 .context("Failed to initialize interactive session")?;
             session.run()?;
+        }
+        
+        // All other commands use session internally for consistency
+        _ => {
+            let mut session = Session::new()
+                .context("Failed to initialize session for single command")?;
+            session.execute_single_command(&cli.command)?;
         }
     }
     
