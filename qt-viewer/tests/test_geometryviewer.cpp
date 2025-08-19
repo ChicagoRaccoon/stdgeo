@@ -125,7 +125,7 @@ void TestGeometryViewer::testMouseInteraction()
     
     // Simulate mouse move
     QPoint testPoint(m_viewer->width() / 2, m_viewer->height() / 2);
-    QMouseEvent moveEvent(QEvent::MouseMove, testPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QMouseEvent moveEvent(QEvent::MouseMove, testPoint, m_viewer->mapToGlobal(testPoint), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
     QApplication::sendEvent(m_viewer, &moveEvent);
     
     // Check that signal was emitted
