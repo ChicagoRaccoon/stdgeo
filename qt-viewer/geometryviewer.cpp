@@ -1,8 +1,24 @@
+/*
+ * Theory of Operation:
+ * GeometryViewer is an OpenGL-based widget for 2D geometry visualization.
+ * It renders points, lines, and other geometric primitives from a GeometryCollection
+ * using immediate mode OpenGL calls. The viewer supports interactive navigation:
+ * - Left mouse drag: Pan the view
+ * - Right mouse drag: Rotate the view
+ * - Mouse wheel: Zoom in/out
+ * - Keyboard shortcuts: R (reset), F (fit), G (toggle grid), A (toggle axes)
+ * 
+ * The coordinate system uses orthographic projection for 2D viewing with
+ * customizable grid overlay and axis display. Real-time mouse position
+ * tracking provides world coordinate feedback to the main window.
+ */
+
 #include "geometryviewer.h"
 #include <QOpenGLFunctions>
 #include <QtMath>
 #include <QDebug>
 
+// Constructor - initializes OpenGL widget with default camera and rendering settings
 GeometryViewer::GeometryViewer(QWidget *parent)
     : QOpenGLWidget(parent)
     , m_geometryCollection(nullptr)
@@ -37,10 +53,12 @@ GeometryViewer::GeometryViewer(QWidget *parent)
     m_animationTimer->start(16); // ~60 FPS
 }
 
+// Destructor - cleanup handled by Qt parent-child relationships
 GeometryViewer::~GeometryViewer()
 {
 }
 
+// Sets the geometry collection to render and invalidates cached bounds
 void GeometryViewer::setGeometryCollection(GeometryCollection *collection)
 {
     m_geometryCollection = collection;
@@ -48,6 +66,7 @@ void GeometryViewer::setGeometryCollection(GeometryCollection *collection)
     update();
 }
 
+// Resets view transform to default zoom, rotation, and pan values
 void GeometryViewer::resetView()
 {
     m_zoomFactor = 1.0f;
@@ -56,6 +75,7 @@ void GeometryViewer::resetView()
     update();
 }
 
+// Calculates and applies zoom/pan to fit all geometry within the viewport
 void GeometryViewer::fitToWindow()
 {
     if (!m_geometryCollection) return;
@@ -84,6 +104,7 @@ void GeometryViewer::fitToWindow()
     update();
 }
 
+// OpenGL initialization - sets up blending, antialiasing, and clear color
 void GeometryViewer::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -101,6 +122,7 @@ void GeometryViewer::initializeGL()
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 }
 
+// Main rendering function - clears buffer and draws grid, axes, and geometry
 void GeometryViewer::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -118,12 +140,14 @@ void GeometryViewer::paintGL()
     drawGeometry();
 }
 
+// Handles viewport resize events
 void GeometryViewer::resizeGL(int width, int height)
 {
     glViewport(0, 0, width, height);
     update();
 }
 
+// Configures orthographic projection matrix with current zoom, pan, and rotation
 void GeometryViewer::setupProjection()
 {
     m_projectionMatrix.setToIdentity();
@@ -145,6 +169,7 @@ void GeometryViewer::setupProjection()
     }
 }
 
+// Iterates through geometry collection and renders each primitive
 void GeometryViewer::drawGeometry()
 {
     if (!m_geometryCollection) return;
@@ -167,6 +192,7 @@ void GeometryViewer::drawGeometry()
     }
 }
 
+// Renders a point as both GL_POINTS and a small circle for visibility
 void GeometryViewer::drawPoint(const CPoint &point)
 {
     glPointSize(m_pointSize);
@@ -188,6 +214,7 @@ void GeometryViewer::drawPoint(const CPoint &point)
     glEnd();
 }
 
+// Renders a line segment between two points
 void GeometryViewer::drawLine(const CLine &line)
 {
     glLineWidth(m_lineWidth);
@@ -199,6 +226,7 @@ void GeometryViewer::drawLine(const CLine &line)
     glEnd();
 }
 
+// Draws adaptive grid lines based on current zoom level
 void GeometryViewer::drawGrid()
 {
     glColor4f(m_gridColor.redF(), m_gridColor.greenF(), m_gridColor.blueF(), 0.5f);
@@ -234,6 +262,7 @@ void GeometryViewer::drawGrid()
     glEnd();
 }
 
+// Draws X and Y coordinate axes if visible in current view
 void GeometryViewer::drawAxes()
 {
     glColor3f(m_axisColor.redF(), m_axisColor.greenF(), m_axisColor.blueF());
@@ -266,6 +295,7 @@ void GeometryViewer::drawAxes()
     }
 }
 
+// Handles mouse button press events for interaction start
 void GeometryViewer::mousePressEvent(QMouseEvent *event)
 {
     m_mousePressed = true;
@@ -274,6 +304,7 @@ void GeometryViewer::mousePressEvent(QMouseEvent *event)
     setFocus();
 }
 
+// Processes mouse movement for pan, rotate, and coordinate display
 void GeometryViewer::mouseMoveEvent(QMouseEvent *event)
 {
     QPoint delta = event->pos() - m_lastMousePos;
@@ -299,6 +330,7 @@ void GeometryViewer::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
+// Handles mouse button release to end interactions
 void GeometryViewer::mouseReleaseEvent(QMouseEvent *event)
 {
     Q_UNUSED(event)
@@ -306,6 +338,7 @@ void GeometryViewer::mouseReleaseEvent(QMouseEvent *event)
     m_mouseButton = Qt::NoButton;
 }
 
+// Processes mouse wheel events for zoom control
 void GeometryViewer::wheelEvent(QWheelEvent *event)
 {
     float delta = event->angleDelta().y() / 120.0f; // Standard wheel step
@@ -317,6 +350,7 @@ void GeometryViewer::wheelEvent(QWheelEvent *event)
     update();
 }
 
+// Handles keyboard shortcuts for view controls and display toggles
 void GeometryViewer::keyPressEvent(QKeyEvent *event)
 {
     switch (event->key()) {
@@ -339,12 +373,14 @@ void GeometryViewer::keyPressEvent(QKeyEvent *event)
     }
 }
 
+// Animation timer callback - currently unused but available for future features
 void GeometryViewer::animate()
 {
     // Update animation if needed
     // Currently no animations, but this can be used for future features
 }
 
+// Converts screen pixel coordinates to world geometry coordinates
 QPointF GeometryViewer::screenToWorld(const QPoint &screenPos) const
 {
     // Convert screen coordinates to world coordinates
@@ -361,6 +397,7 @@ QPointF GeometryViewer::screenToWorld(const QPoint &screenPos) const
     return QPointF(worldX, worldY);
 }
 
+// Converts world geometry coordinates to screen pixel coordinates
 QPoint GeometryViewer::worldToScreen(const QPointF &worldPos) const
 {
     // Convert world coordinates to screen coordinates
@@ -377,6 +414,7 @@ QPoint GeometryViewer::worldToScreen(const QPointF &worldPos) const
     return QPoint(screenX, screenY);
 }
 
+// Calculates and caches bounding box of all geometry in the collection
 void GeometryViewer::updateBounds()
 {
     if (!m_geometryCollection) {

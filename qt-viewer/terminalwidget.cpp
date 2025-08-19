@@ -1,3 +1,17 @@
+/*
+ * Theory of Operation:
+ * TerminalWidget provides an integrated CLI interface for the StdGeo application.
+ * It supports two modes of operation:
+ * 1. Native terminal (if QTermWidget is available) - provides full terminal emulation
+ * 2. Fallback custom terminal - uses QTextEdit for output and QLineEdit for input
+ * 
+ * The widget manages process execution for the stdgeo CLI binary, handles both
+ * interactive sessions and single command execution, maintains command history,
+ * and provides file system watching for geometry file changes. It automatically
+ * locates the stdgeo binary in various standard locations and provides visual
+ * feedback through status indicators.
+ */
+
 #include "terminalwidget.h"
 #include <QApplication>
 #include <QDir>
@@ -7,6 +21,7 @@
 #include <QDebug>
 #include <QSplitter>
 
+// Constructor - sets up UI layout, terminal process, and file watching
 TerminalWidget::TerminalWidget(QWidget *parent)
     : QWidget(parent)
     , m_mainLayout(nullptr)
@@ -42,6 +57,7 @@ TerminalWidget::TerminalWidget(QWidget *parent)
     connect(m_outputTimer, &QTimer::timeout, this, &TerminalWidget::watchForGeometryFiles);
 }
 
+// Destructor - terminates CLI process and cleans up resources
 TerminalWidget::~TerminalWidget()
 {
     if (m_cliProcess && m_cliProcess->state() != QProcess::NotRunning) {
@@ -50,6 +66,7 @@ TerminalWidget::~TerminalWidget()
     }
 }
 
+// Creates the user interface layout with control buttons and terminal display
 void TerminalWidget::setupUI()
 {
     m_mainLayout = new QVBoxLayout(this);
@@ -122,6 +139,7 @@ void TerminalWidget::setupUI()
     }
 }
 
+// Initializes QProcess for CLI communication and connects process signals
 void TerminalWidget::setupTerminal()
 {
     m_cliProcess = new QProcess(this);
@@ -138,6 +156,7 @@ void TerminalWidget::setupTerminal()
     }
 }
 
+// Configures file system monitoring for geometry file changes
 void TerminalWidget::setupFileWatcher()
 {
     // Watch current directory for geometry files
@@ -166,6 +185,7 @@ void TerminalWidget::setupFileWatcher()
             });
 }
 
+// Searches for stdgeo executable in build directories and system PATH
 QString TerminalWidget::findStdgeoBinary()
 {
     // Look for the stdgeo binary in various locations
@@ -196,6 +216,7 @@ QString TerminalWidget::findStdgeoBinary()
     return "stdgeo"; // Will use system PATH
 }
 
+// Launches stdgeo in interactive session mode for continuous CLI interaction
 void TerminalWidget::startInteractiveSession()
 {
     if (m_cliProcess->state() != QProcess::NotRunning) {
@@ -228,6 +249,7 @@ void TerminalWidget::startInteractiveSession()
     emit sessionStarted();
 }
 
+// Terminates the current interactive session gracefully
 void TerminalWidget::stopSession()
 {
 #ifdef HAVE_QTERMWIDGET
@@ -255,6 +277,7 @@ void TerminalWidget::stopSession()
     emit sessionEnded();
 }
 
+// Executes a single command either in session mode or as standalone process
 void TerminalWidget::executeCommand(const QString &command)
 {
     if (command.isEmpty()) return;
@@ -295,6 +318,7 @@ void TerminalWidget::executeCommand(const QString &command)
     }
 }
 
+// Sends command to running CLI process and updates command history
 void TerminalWidget::sendCommand(const QString &command)
 {
     if (m_cliProcess->state() == QProcess::Running) {
@@ -311,6 +335,7 @@ void TerminalWidget::sendCommand(const QString &command)
     }
 }
 
+// Clears the terminal output display
 void TerminalWidget::clear()
 {
     if (m_outputDisplay) {
@@ -319,6 +344,7 @@ void TerminalWidget::clear()
     }
 }
 
+// Returns true if CLI process is currently running
 bool TerminalWidget::isCliRunning() const
 {
 #ifdef HAVE_QTERMWIDGET
@@ -329,6 +355,7 @@ bool TerminalWidget::isCliRunning() const
     return m_cliProcess && m_cliProcess->state() == QProcess::Running;
 }
 
+// Handles CLI process termination and updates session state
 void TerminalWidget::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     Q_UNUSED(exitCode)
@@ -343,6 +370,7 @@ void TerminalWidget::onProcessFinished(int exitCode, QProcess::ExitStatus exitSt
     }
 }
 
+// Handles CLI process errors and displays appropriate error messages
 void TerminalWidget::onProcessError(QProcess::ProcessError error)
 {
     QString errorMsg;
@@ -370,6 +398,7 @@ void TerminalWidget::onProcessError(QProcess::ProcessError error)
     }
 }
 
+// Reads and displays standard output from CLI process
 void TerminalWidget::onReadyReadStandardOutput()
 {
     QByteArray data = m_cliProcess->readAllStandardOutput();
@@ -377,6 +406,7 @@ void TerminalWidget::onReadyReadStandardOutput()
     appendOutput(output, m_outputColor);
 }
 
+// Reads and displays error output from CLI process
 void TerminalWidget::onReadyReadStandardError()
 {
     QByteArray data = m_cliProcess->readAllStandardError();
@@ -384,6 +414,7 @@ void TerminalWidget::onReadyReadStandardError()
     appendOutput(error, m_errorColor);
 }
 
+// Handles Enter key press in command line input field
 void TerminalWidget::onCommandLineReturnPressed()
 {
     if (!m_commandLine) return;
@@ -396,11 +427,13 @@ void TerminalWidget::onCommandLineReturnPressed()
     }
 }
 
+// Handles clear button click event
 void TerminalWidget::onClearButtonClicked()
 {
     clear();
 }
 
+// Toggles interactive session state when session button is clicked
 void TerminalWidget::onSessionButtonClicked()
 {
     if (m_sessionMode) {
@@ -410,12 +443,14 @@ void TerminalWidget::onSessionButtonClicked()
     }
 }
 
+// Periodic callback to monitor geometry file changes
 void TerminalWidget::watchForGeometryFiles()
 {
     // This is called periodically to check for geometry file changes
     // In a real implementation, this could trigger reloads in the main window
 }
 
+// Appends colored text to the terminal output display
 void TerminalWidget::appendOutput(const QString &text, const QColor &color)
 {
     if (!m_outputDisplay) return;
@@ -433,6 +468,7 @@ void TerminalWidget::appendOutput(const QString &text, const QColor &color)
     scrollBar->setValue(scrollBar->maximum());
 }
 
+// Displays command prompt in terminal output
 void TerminalWidget::appendPrompt()
 {
     if (m_outputDisplay && !m_sessionMode) {
@@ -440,6 +476,7 @@ void TerminalWidget::appendPrompt()
     }
 }
 
+// Updates session button text and status label based on current state
 void TerminalWidget::updateSessionButton()
 {
     if (m_sessionMode) {
@@ -451,6 +488,7 @@ void TerminalWidget::updateSessionButton()
     }
 }
 
+// Handles keyboard events for command history navigation
 void TerminalWidget::keyPressEvent(QKeyEvent *event)
 {
     if (!m_commandLine) {

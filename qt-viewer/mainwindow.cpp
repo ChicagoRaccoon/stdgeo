@@ -1,9 +1,23 @@
+/*
+ * Theory of Operation:
+ * MainWindow serves as the primary application window for the StdGeo Qt Viewer.
+ * It manages the overall application layout with a split view containing:
+ * - GeometryViewer: OpenGL-based 2D geometry visualization on the left
+ * - TerminalWidget: Integrated CLI interface on the right
+ * 
+ * The window handles file I/O operations (new, open, save, save as) for geometry
+ * collections in JSON format, provides view controls (reset, fit, refresh), and
+ * maintains real-time synchronization between the CLI and visualization through
+ * a timer-based refresh mechanism.
+ */
+
 #include "mainwindow.h"
 #include <QApplication>
 #include <QCloseEvent>
 #include <QFileInfo>
 #include <QStandardPaths>
 
+// Constructor - sets up the main window with splitter layout, geometry viewer, and terminal
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_centralSplitter(nullptr)
@@ -37,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
     resetView();
 }
 
+// Destructor - cleans up geometry collection resources
 MainWindow::~MainWindow()
 {
     if (m_geometryCollection) {
@@ -44,6 +59,7 @@ MainWindow::~MainWindow()
     }
 }
 
+// Creates all QAction objects for menus and toolbars with shortcuts and status tips
 void MainWindow::createActions()
 {
     // File actions
@@ -88,6 +104,7 @@ void MainWindow::createActions()
     m_aboutQtAction->setStatusTip(tr("Show information about Qt"));
 }
 
+// Builds the main menu bar with File, View, and Help menus
 void MainWindow::createMenus()
 {
     // File menu
@@ -114,6 +131,7 @@ void MainWindow::createMenus()
     m_helpMenu->addAction(m_aboutQtAction);
 }
 
+// Creates toolbars for quick access to commonly used actions
 void MainWindow::createToolBars()
 {
     // File toolbar
@@ -129,6 +147,7 @@ void MainWindow::createToolBars()
     m_viewToolBar->addAction(m_refreshAction);
 }
 
+// Sets up status bar with geometry count and mouse coordinate displays
 void MainWindow::createStatusBar()
 {
     m_geometryCountLabel = new QLabel(tr("Geometries: 0"));
@@ -140,6 +159,7 @@ void MainWindow::createStatusBar()
     statusBar()->showMessage(tr("Ready"), 2000);
 }
 
+// Configures the main window layout with horizontal splitter containing viewer and terminal
 void MainWindow::setupLayout()
 {
     // Create central splitter
@@ -163,6 +183,7 @@ void MainWindow::setupLayout()
     m_centralSplitter->setStretchFactor(1, 0);
 }
 
+// Connects all Qt signals and slots for menu actions and widget interactions
 void MainWindow::connectSignals()
 {
     // File actions
@@ -189,6 +210,7 @@ void MainWindow::connectSignals()
             });
 }
 
+// Creates a new empty geometry collection
 void MainWindow::newFile()
 {
     geometry_collection_clear(m_geometryCollection);
@@ -198,6 +220,7 @@ void MainWindow::newFile()
     statusBar()->showMessage(tr("New file created"), 2000);
 }
 
+// Opens a geometry file from disk using file dialog and loads into collection
 void MainWindow::openFile()
 {
     QString fileName = QFileDialog::getOpenFileName(this,
@@ -220,6 +243,7 @@ void MainWindow::openFile()
     }
 }
 
+// Saves current geometry collection to file (prompts for filename if needed)
 void MainWindow::saveFile()
 {
     if (m_currentFile.isEmpty()) {
@@ -235,6 +259,7 @@ void MainWindow::saveFile()
     }
 }
 
+// Saves geometry collection with a new filename using save dialog
 void MainWindow::saveAsFile()
 {
     QString fileName = QFileDialog::getSaveFileName(this,
@@ -254,6 +279,7 @@ void MainWindow::saveAsFile()
     }
 }
 
+// Displays application information dialog
 void MainWindow::about()
 {
     QMessageBox::about(this, tr("About StdGeo Viewer"),
@@ -269,16 +295,19 @@ void MainWindow::about()
            "<p>Built with Qt6 and Rust.</p>"));
 }
 
+// Shows Qt framework information dialog
 void MainWindow::aboutQt()
 {
     QApplication::aboutQt();
 }
 
+// Initiates application shutdown
 void MainWindow::exitApplication()
 {
     close();
 }
 
+// Resets geometry viewer to default zoom, pan, and rotation
 void MainWindow::resetView()
 {
     if (m_geometryViewer) {
@@ -286,6 +315,7 @@ void MainWindow::resetView()
     }
 }
 
+// Adjusts viewer zoom and pan to fit all geometry within the window
 void MainWindow::fitToWindow()
 {
     if (m_geometryViewer) {
@@ -293,6 +323,7 @@ void MainWindow::fitToWindow()
     }
 }
 
+// Forces update of geometry display and viewer rendering
 void MainWindow::refreshView()
 {
     updateGeometryDisplay();
@@ -301,6 +332,7 @@ void MainWindow::refreshView()
     }
 }
 
+// Updates status bar geometry count and triggers viewer refresh
 void MainWindow::updateGeometryDisplay()
 {
     int count = geometry_collection_size(m_geometryCollection);
@@ -308,6 +340,7 @@ void MainWindow::updateGeometryDisplay()
     onGeometryCountChanged(count);
 }
 
+// Handles geometry collection size changes by updating the viewer
 void MainWindow::onGeometryCountChanged(int count)
 {
     Q_UNUSED(count)
@@ -316,6 +349,7 @@ void MainWindow::onGeometryCountChanged(int count)
     }
 }
 
+// Handles application close event with clean shutdown
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     // Clean shutdown

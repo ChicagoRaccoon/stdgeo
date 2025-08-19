@@ -1,3 +1,12 @@
+/*
+ * Theory of Operation:
+ * This test suite validates the GeometryViewer OpenGL widget functionality.
+ * It tests widget initialization, geometry collection integration, mouse interactions,
+ * view operations (reset, fit-to-window), and basic rendering capabilities.
+ * The tests create geometry collections with points and lines, simulate user
+ * interactions, and verify proper signal emissions and visual rendering.
+ */
+
 #include <QtTest/QtTest>
 #include <QApplication>
 #include <QSignalSpy>
@@ -5,6 +14,7 @@
 #include "../geometryviewer.h"
 #include "../../stdgeo_lib.h"
 
+// Test class for GeometryViewer OpenGL widget validation
 class TestGeometryViewer : public QObject
 {
     Q_OBJECT
@@ -27,6 +37,7 @@ private:
     QApplication *m_app;
 };
 
+// Sets up Qt application instance for OpenGL testing
 void TestGeometryViewer::initTestCase()
 {
     // Initialize Qt application if not already done
@@ -37,11 +48,13 @@ void TestGeometryViewer::initTestCase()
     }
 }
 
+// Cleans up after all tests complete
 void TestGeometryViewer::cleanupTestCase()
 {
     // Cleanup is handled by Qt
 }
 
+// Creates geometry collection and viewer instance for each test
 void TestGeometryViewer::init()
 {
     m_collection = geometry_collection_new();
@@ -53,12 +66,14 @@ void TestGeometryViewer::init()
     [[maybe_unused]] bool exposed = QTest::qWaitForWindowExposed(m_viewer);
 }
 
+// Cleans up viewer and geometry collection after each test
 void TestGeometryViewer::cleanup()
 {
     delete m_viewer;
     geometry_collection_free(m_collection);
 }
 
+// Verifies proper OpenGL widget initialization and visibility
 void TestGeometryViewer::testInitialization()
 {
     QVERIFY(m_viewer != nullptr);
@@ -67,6 +82,7 @@ void TestGeometryViewer::testInitialization()
     QCOMPARE(m_viewer->height() > 0, true);
 }
 
+// Tests geometry collection operations and data integrity
 void TestGeometryViewer::testGeometryCollection()
 {
     // Test with empty collection
@@ -97,6 +113,7 @@ void TestGeometryViewer::testGeometryCollection()
     QCOMPARE(geometry.data.line.end.y, 4.0);
 }
 
+// Validates mouse position tracking and coordinate transformation
 void TestGeometryViewer::testMouseInteraction()
 {
     // Add some geometry to make interactions meaningful
@@ -124,6 +141,7 @@ void TestGeometryViewer::testMouseInteraction()
     QVERIFY(qAbs(y) < 1000.0);
 }
 
+// Tests view control functions like reset and fit-to-window
 void TestGeometryViewer::testViewOperations()
 {
     // Add some geometry
@@ -142,6 +160,7 @@ void TestGeometryViewer::testViewOperations()
     QTest::qWait(100);
 }
 
+// Validates OpenGL rendering and visual output generation
 void TestGeometryViewer::testRendering()
 {
     // Add various geometry types
@@ -181,3 +200,4 @@ void TestGeometryViewer::testRendering()
 
 QTEST_MAIN(TestGeometryViewer)
 #include "test_geometryviewer.moc"
+

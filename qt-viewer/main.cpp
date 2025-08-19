@@ -1,8 +1,17 @@
+/*
+ * Theory of Operation:
+ * This is the main entry point for the StdGeo Qt Viewer application.
+ * It initializes the Qt application framework, sets up application metadata,
+ * applies a modern UI style if available, creates the main window,
+ * and enters the Qt event loop.
+ */
+
 #include <QApplication>
 #include <QStyleFactory>
 #include <QDir>
 #include "mainwindow.h"
 
+// Application entry point - initializes Qt framework and main window
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);

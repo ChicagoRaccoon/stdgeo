@@ -1,3 +1,12 @@
+/*
+ * Theory of Operation:
+ * This test suite validates the TerminalWidget functionality using Qt's testing framework.
+ * It covers widget initialization, command execution, session management, and UI interactions.
+ * Tests are designed to work with or without the stdgeo binary present, gracefully handling
+ * missing dependencies with appropriate skip messages. The tests verify both the fallback
+ * terminal implementation and signal emissions for proper widget communication.
+ */
+
 #include <QtTest/QtTest>
 #include <QApplication>
 #include <QSignalSpy>
@@ -5,6 +14,7 @@
 #include <QTextEdit>
 #include "../terminalwidget.h"
 
+// Test class for TerminalWidget functionality validation
 class TestTerminalWidget : public QObject
 {
     Q_OBJECT
@@ -25,6 +35,7 @@ private:
     QApplication *m_app;
 };
 
+// Sets up Qt application instance for testing
 void TestTerminalWidget::initTestCase()
 {
     // Initialize Qt application if not already done
@@ -35,11 +46,13 @@ void TestTerminalWidget::initTestCase()
     }
 }
 
+// Cleans up after all tests complete
 void TestTerminalWidget::cleanupTestCase()
 {
     // Cleanup is handled by Qt
 }
 
+// Creates fresh TerminalWidget instance for each test
 void TestTerminalWidget::init()
 {
     m_terminal = new TerminalWidget();
@@ -49,6 +62,7 @@ void TestTerminalWidget::init()
     [[maybe_unused]] bool exposed = QTest::qWaitForWindowExposed(m_terminal);
 }
 
+// Cleans up TerminalWidget instance after each test
 void TestTerminalWidget::cleanup()
 {
     if (m_terminal->isCliRunning()) {
@@ -58,6 +72,7 @@ void TestTerminalWidget::cleanup()
     delete m_terminal;
 }
 
+// Verifies proper widget initialization and UI component presence
 void TestTerminalWidget::testInitialization()
 {
     QVERIFY(m_terminal != nullptr);
@@ -72,6 +87,7 @@ void TestTerminalWidget::testInitialization()
     QVERIFY(commandLine != nullptr || outputDisplay != nullptr);
 }
 
+// Tests command execution and signal emission with help command
 void TestTerminalWidget::testCommandExecution()
 {
     QSignalSpy commandSpy(m_terminal, &TerminalWidget::commandExecuted);
@@ -97,6 +113,7 @@ void TestTerminalWidget::testCommandExecution()
     }
 }
 
+// Validates interactive session start/stop functionality
 void TestTerminalWidget::testSessionManagement()
 {
     if (!QFile::exists("./stdgeo") && !QFile::exists("../bin/stdgeo")) {
@@ -129,6 +146,7 @@ void TestTerminalWidget::testSessionManagement()
     }
 }
 
+// Tests terminal output clearing functionality
 void TestTerminalWidget::testClearFunction()
 {
     // Execute a command to generate some output
@@ -153,3 +171,4 @@ void TestTerminalWidget::testClearFunction()
 
 QTEST_MAIN(TestTerminalWidget)
 #include "test_terminalwidget.moc"
+
