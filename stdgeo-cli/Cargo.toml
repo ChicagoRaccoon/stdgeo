@@ -11,6 +11,7 @@ path = "src/main.rs"
 clap = { version = "4.0", features = ["derive"] }
 stdgeo-lib = { path = "../stdgeo-lib" }
 anyhow = "1.0"
+rustyline = "13.0"
 
 [dev-dependencies]
 assert_cmd = "2.0"

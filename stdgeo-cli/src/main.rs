@@ -1,6 +1,7 @@
 //! # StdGeo CLI Application
 //!
 //! A command-line interface for geometric operations and file format conversions.
+//! Supports both single-command mode and interactive session mode.
 //!
 //! ## Theory of Operation
 //!
@@ -16,6 +17,14 @@
 //! - `write` - Convert between file formats
 //! - `translate` - Apply translation transformations
 //! - `rotate` - Apply rotation transformations
+//! - `session` - Start interactive session mode
+//!
+//! ### Interactive Session Mode
+//! When started in session mode, the CLI maintains state between commands:
+//! - Geometry objects persist across commands
+//! - Commands can reference previously created objects
+//! - Session state can be saved to files
+//! - Commands are parsed interactively with readline support
 //!
 //! ### File Format Support
 //! The CLI supports both JSON and simple text formats:
@@ -24,9 +33,9 @@
 //!
 //! ### Transformation Pipeline
 //! Operations follow a consistent pattern:
-//! 1. Read geometry from input file
+//! 1. Read geometry from input file or session state
 //! 2. Apply transformation (if applicable)
-//! 3. Write result to output file
+//! 3. Write result to output file or update session state
 //! 4. Provide user feedback
 //!
 //! ### Error Handling
@@ -35,6 +44,7 @@
 //!
 //! ## Usage Examples
 //!
+//! ### Single Command Mode
 //! ```bash
 //! # Create a point and save to file
 //! stdgeo point -x 3.0 -y 4.0 -o point.json
@@ -52,14 +62,29 @@
 //! stdgeo translate -i input.json -o output.json --dx 5.0 --dy 10.0
 //! stdgeo rotate -i input.json -o output.json --angle 90.0 --degrees
 //! ```
+//!
+//! ### Interactive Session Mode
+//! ```bash
+//! # Start interactive session
+//! stdgeo session
+//! 
+//! # Then issue commands interactively:
+//! > point 3.0 4.0
+//! > line 0.0 0.0 5.0 5.0
+//! > translate 1.0 2.0
+//! > list
+//! > save output.json
+//! > quit
+//! ```
 
 use clap::{Parser, Subcommand};
 use stdgeo_lib::{
     geometry::{Geometry, Point, Line, degrees_to_radians},
     io::{read_geometry_file, write_geometry_file, read_simple_format, write_simple_format}
 };
-use anyhow::Result;
+use anyhow::{Result, Context};
 use std::path::PathBuf;
+use rustyline::{DefaultEditor, Result as RustyResult};
 
 /// Main CLI structure using clap's derive API.
 ///
@@ -82,6 +107,7 @@ struct Cli {
 /// - Creation: Point, Line
 /// - I/O: Read, Write
 /// - Transformation: Translate, Rotate
+/// - Interactive: Session
 #[derive(Subcommand)]
 enum Commands {
     /// Create a point with specified coordinates.
@@ -195,6 +221,271 @@ enum Commands {
         #[arg(long, default_value = "false")]
         simple: bool,
     },
+    /// Start an interactive session for geometry operations.
+    ///
+    /// In session mode, you can issue commands interactively and maintain
+    /// state between operations. Geometry objects persist throughout the session.
+    Session,
+}
+
+/// Session state for interactive mode
+struct Session {
+    geometries: Vec<Geometry>,
+    editor: DefaultEditor,
+}
+
+impl Session {
+    fn new() -> RustyResult<Self> {
+        let editor = DefaultEditor::new()?;
+        Ok(Session {
+            geometries: Vec::new(),
+            editor,
+        })
+    }
+
+    fn run(&mut self) -> Result<()> {
+        println!("StdGeo Interactive Session");
+        println!("Type 'help' for available commands, 'quit' to exit");
+        
+        loop {
+            let readline = self.editor.readline("stdgeo> ");
+            match readline {
+                Ok(line) => {
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    
+                    self.editor.add_history_entry(&line).ok();
+                    
+                    if let Err(e) = self.handle_command(&line) {
+                        println!("Error: {}", e);
+                    }
+                }
+                Err(rustyline::error::ReadlineError::Interrupted) => {
+                    println!("Interrupted");
+                    break;
+                }
+                Err(rustyline::error::ReadlineError::Eof) => {
+                    println!("EOF");
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break;
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn handle_command(&mut self, line: &str) -> Result<()> {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.is_empty() {
+            return Ok(());
+        }
+
+        match parts[0] {
+            "help" => self.show_help(),
+            "quit" | "exit" => std::process::exit(0),
+            "point" => self.create_point(&parts[1..])?,
+            "line" => self.create_line(&parts[1..])?,
+            "list" => self.list_geometries(),
+            "clear" => self.clear_geometries(),
+            "translate" => self.translate_all(&parts[1..])?,
+            "rotate" => self.rotate_all(&parts[1..])?,
+            "load" => self.load_from_file(&parts[1..])?,
+            "save" => self.save_to_file(&parts[1..])?,
+            "count" => self.show_count(),
+            _ => println!("Unknown command: {}. Type 'help' for available commands.", parts[0]),
+        }
+        
+        Ok(())
+    }
+
+    fn show_help(&self) {
+        println!("Available commands:");
+        println!("  point <x> <y>                    - Create a point");
+        println!("  line <x1> <y1> <x2> <y2>        - Create a line segment");
+        println!("  list                             - List all geometry objects");
+        println!("  count                            - Show number of objects");
+        println!("  clear                            - Clear all objects");
+        println!("  translate <dx> <dy>              - Translate all objects");
+        println!("  rotate <angle> [<center_x> <center_y>] [--degrees] - Rotate all objects");
+        println!("  load <filename> [--simple]      - Load objects from file");
+        println!("  save <filename> [--simple]      - Save objects to file");
+        println!("  help                             - Show this help");
+        println!("  quit, exit                       - Exit session");
+    }
+
+    fn create_point(&mut self, args: &[&str]) -> Result<()> {
+        if args.len() != 2 {
+            return Err(anyhow::anyhow!("point command requires 2 arguments: <x> <y>"));
+        }
+        
+        let x: f64 = args[0].parse().context("Invalid x coordinate")?;
+        let y: f64 = args[1].parse().context("Invalid y coordinate")?;
+        
+        let point = Geometry::Point(Point::new(x, y));
+        self.geometries.push(point);
+        
+        println!("Created point ({}, {})", x, y);
+        Ok(())
+    }
+
+    fn create_line(&mut self, args: &[&str]) -> Result<()> {
+        if args.len() != 4 {
+            return Err(anyhow::anyhow!("line command requires 4 arguments: <x1> <y1> <x2> <y2>"));
+        }
+        
+        let x1: f64 = args[0].parse().context("Invalid x1 coordinate")?;
+        let y1: f64 = args[1].parse().context("Invalid y1 coordinate")?;
+        let x2: f64 = args[2].parse().context("Invalid x2 coordinate")?;
+        let y2: f64 = args[3].parse().context("Invalid y2 coordinate")?;
+        
+        let line = Geometry::Line(Line::new(Point::new(x1, y1), Point::new(x2, y2)));
+        self.geometries.push(line);
+        
+        println!("Created line from ({}, {}) to ({}, {})", x1, y1, x2, y2);
+        Ok(())
+    }
+
+    fn list_geometries(&self) {
+        if self.geometries.is_empty() {
+            println!("No geometry objects in session");
+            return;
+        }
+        
+        println!("Session contains {} geometry objects:", self.geometries.len());
+        for (i, geometry) in self.geometries.iter().enumerate() {
+            match geometry {
+                Geometry::Point(p) => println!("  {}: Point ({}, {})", i + 1, p.x, p.y),
+                Geometry::Line(l) => println!("  {}: Line ({}, {}) to ({}, {})", 
+                    i + 1, l.start.x, l.start.y, l.end.x, l.end.y),
+            }
+        }
+    }
+
+    fn clear_geometries(&mut self) {
+        let count = self.geometries.len();
+        self.geometries.clear();
+        println!("Cleared {} geometry objects", count);
+    }
+
+    fn show_count(&self) {
+        println!("Session contains {} geometry objects", self.geometries.len());
+    }
+
+    fn translate_all(&mut self, args: &[&str]) -> Result<()> {
+        if args.len() != 2 {
+            return Err(anyhow::anyhow!("translate command requires 2 arguments: <dx> <dy>"));
+        }
+        
+        let dx: f64 = args[0].parse().context("Invalid dx displacement")?;
+        let dy: f64 = args[1].parse().context("Invalid dy displacement")?;
+        
+        let count = self.geometries.len();
+        if count == 0 {
+            println!("No objects to translate");
+            return Ok(());
+        }
+        
+        for geometry in &mut self.geometries {
+            *geometry = geometry.translate(dx, dy);
+        }
+        
+        println!("Translated {} objects by ({}, {})", count, dx, dy);
+        Ok(())
+    }
+
+    fn rotate_all(&mut self, args: &[&str]) -> Result<()> {
+        if args.len() < 1 {
+            return Err(anyhow::anyhow!("rotate command requires at least 1 argument: <angle> [<center_x> <center_y>] [--degrees]"));
+        }
+        
+        let mut angle: f64 = args[0].parse().context("Invalid angle")?;
+        let mut center = Point::origin();
+        let mut degrees = false;
+        
+        let mut i = 1;
+        while i < args.len() {
+            match args[i] {
+                "--degrees" => degrees = true,
+                arg if i + 1 < args.len() => {
+                    center.x = arg.parse().context("Invalid center x coordinate")?;
+                    center.y = args[i + 1].parse().context("Invalid center y coordinate")?;
+                    i += 1;
+                }
+                _ => return Err(anyhow::anyhow!("Invalid rotate command syntax")),
+            }
+            i += 1;
+        }
+        
+        if degrees {
+            angle = degrees_to_radians(angle);
+        }
+        
+        let count = self.geometries.len();
+        if count == 0 {
+            println!("No objects to rotate");
+            return Ok(());
+        }
+        
+        for geometry in &mut self.geometries {
+            *geometry = geometry.rotate(angle, center);
+        }
+        
+        let angle_unit = if degrees { "degrees" } else { "radians" };
+        println!("Rotated {} objects by {} {} around ({}, {})", 
+            count, args[0], angle_unit, center.x, center.y);
+        Ok(())
+    }
+
+    fn load_from_file(&mut self, args: &[&str]) -> Result<()> {
+        if args.is_empty() {
+            return Err(anyhow::anyhow!("load command requires a filename"));
+        }
+        
+        let filename = args[0];
+        let simple = args.contains(&"--simple");
+        
+        let path = PathBuf::from(filename);
+        let geometries = if simple {
+            read_simple_format(&path)?
+        } else {
+            read_geometry_file(&path)?
+        };
+        
+        let count = geometries.len();
+        self.geometries.extend(geometries);
+        
+        println!("Loaded {} geometry objects from {}", count, filename);
+        Ok(())
+    }
+
+    fn save_to_file(&mut self, args: &[&str]) -> Result<()> {
+        if args.is_empty() {
+            return Err(anyhow::anyhow!("save command requires a filename"));
+        }
+        
+        let filename = args[0];
+        let simple = args.contains(&"--simple");
+        
+        if self.geometries.is_empty() {
+            println!("No objects to save");
+            return Ok(());
+        }
+        
+        let path = PathBuf::from(filename);
+        if simple {
+            write_simple_format(&path, &self.geometries)?;
+        } else {
+            write_geometry_file(&path, &self.geometries)?;
+        }
+        
+        println!("Saved {} geometry objects to {}", self.geometries.len(), filename);
+        Ok(())
+    }
 }
 
 /// Main entry point for the CLI application.
@@ -333,6 +624,13 @@ fn main() -> Result<()> {
             let angle_unit = if degrees { "degrees" } else { "radians" };
             println!("Rotated {} geometries by {} {} around ({}, {}) and saved to {}", 
                 rotated.len(), angle, angle_unit, center_x, center_y, output.display());
+        }
+        
+        // Handle interactive session command
+        Commands::Session => {
+            let mut session = Session::new()
+                .context("Failed to initialize interactive session")?;
+            session.run()?;
         }
     }
     
