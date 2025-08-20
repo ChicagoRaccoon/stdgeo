@@ -16,20 +16,6 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 # Add Qt library directory to link directories
 link_directories("${QT_LIB_DIR}")
 
-# Add the Qt terminal widget (QTermWidget) - we'll use it if available
-find_package(PkgConfig)
-if(PkgConfig_FOUND)
-    pkg_check_modules(QTERMWIDGET qtermwidget6)
-endif()
-
-# Also try to find qtermwidget6 directly
-if(NOT QTERMWIDGET_FOUND)
-    find_library(QTERMWIDGET_LIBRARIES NAMES qtermwidget6 PATHS /usr/local/lib)
-    find_path(QTERMWIDGET_INCLUDE_DIRS NAMES qtermwidget6/qtermwidget.h PATHS /usr/local/include)
-    if(QTERMWIDGET_LIBRARIES AND QTERMWIDGET_INCLUDE_DIRS)
-        set(QTERMWIDGET_FOUND TRUE)
-    endif()
-endif()
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -74,12 +60,6 @@ endif()
 target_link_libraries(stdgeo-qt-viewer PRIVATE "${RUST_LIB_DIR}/libstdgeo_lib.so")
 target_link_directories(stdgeo-qt-viewer PRIVATE ${RUST_LIB_DIR})
 
-# If qtermwidget is available, use it
-if(QTERMWIDGET_FOUND)
-    target_compile_definitions(stdgeo-qt-viewer PRIVATE HAVE_QTERMWIDGET)
-    target_link_libraries(stdgeo-qt-viewer PRIVATE ${QTERMWIDGET_LIBRARIES})
-    target_include_directories(stdgeo-qt-viewer PRIVATE ${QTERMWIDGET_INCLUDE_DIRS})
-endif()
 
 # Ensure Rust library is built first
 add_dependencies(stdgeo-qt-viewer cargo_build)

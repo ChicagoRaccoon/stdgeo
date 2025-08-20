@@ -31,10 +31,6 @@ TerminalWidget::TerminalWidget(QWidget *parent)
     , m_sessionButton(nullptr)
     , m_clearButton(nullptr)
     , m_statusLabel(nullptr)
-#ifdef HAVE_QTERMWIDGET
-    , m_nativeTerminal(nullptr)
-#endif
-    , m_useNativeTerminal(false)
     , m_cliProcess(nullptr)
     , m_sessionMode(false)
     , m_outputTimer(new QTimer(this))
@@ -55,6 +51,46 @@ TerminalWidget::TerminalWidget(QWidget *parent)
     // Setup output polling timer
     m_outputTimer->setInterval(50);
     connect(m_outputTimer, &QTimer::timeout, this, &TerminalWidget::watchForGeometryFiles);
+    
+    // Auto-start interactive session
+    QTimer::singleShot(100, this, &TerminalWidget::startInteractiveSession);
+}
+
+// Constructor with shared session - uses existing QProcess instead of creating new one
+TerminalWidget::TerminalWidget(QProcess *sharedSession, QWidget *parent)
+    : QWidget(parent)
+    , m_mainLayout(nullptr)
+    , m_controlLayout(nullptr)
+    , m_outputDisplay(nullptr)
+    , m_commandLine(nullptr)
+    , m_sessionButton(nullptr)
+    , m_clearButton(nullptr)
+    , m_statusLabel(nullptr)
+    // Using QProcess-based implementation only
+    , m_cliProcess(sharedSession)
+    , m_sessionMode(true)  // Session is already active
+    , m_outputTimer(new QTimer(this))
+    , m_fileWatcher(new QFileSystemWatcher(this))
+    , m_historyIndex(-1)
+    , m_outputColor(Qt::black)
+    , m_errorColor(Qt::red)
+    , m_promptColor(Qt::blue)
+    , m_commandColor(Qt::darkGreen)
+{
+    setupUI();
+    setupSharedTerminal();  // Different setup for shared session
+    setupFileWatcher();
+    
+    // Find the stdgeo binary (for display purposes)
+    m_stdgeoBinaryPath = findStdgeoBinary();
+    
+    // Setup output polling timer
+    m_outputTimer->setInterval(50);
+    connect(m_outputTimer, &QTimer::timeout, this, &TerminalWidget::watchForGeometryFiles);
+    
+    // Session is already running, so update UI accordingly
+    updateSessionButton();
+    m_outputTimer->start();
 }
 
 // Destructor - terminates CLI process and cleans up resources
@@ -86,57 +122,37 @@ void TerminalWidget::setupUI()
     
     m_mainLayout->addLayout(m_controlLayout);
     
-#ifdef HAVE_QTERMWIDGET
-    // Try to use native terminal if available
-    m_nativeTerminal = new QTermWidget(this);
-    if (m_nativeTerminal) {
-        m_useNativeTerminal = true;
-        m_nativeTerminal->setShellProgram(m_stdgeoBinaryPath);
-        m_nativeTerminal->setArgs(QStringList() << "session");
-        m_nativeTerminal->setColorScheme("Linux");
-        m_nativeTerminal->setScrollBarPosition(QTermWidget::ScrollBarRight);
-        m_mainLayout->addWidget(m_nativeTerminal);
-    } else {
-        m_useNativeTerminal = false;
-    }
-#endif
-
-    if (!m_useNativeTerminal) {
-        // Fallback to custom terminal emulation
-        m_outputDisplay = new QTextEdit(this);
-        m_outputDisplay->setReadOnly(true);
-        m_outputDisplay->setFont(QFont("Consolas", 10));
-        m_outputDisplay->setStyleSheet(
-            "QTextEdit {"
-            "    background-color: #2b2b2b;"
-            "    color: #ffffff;"
-            "    border: 1px solid #555555;"
-            "}"
-        );
-        
-        m_commandLine = new QLineEdit(this);
-        m_commandLine->setFont(QFont("Consolas", 10));
-        m_commandLine->setStyleSheet(
-            "QLineEdit {"
-            "    background-color: #2b2b2b;"
-            "    color: #ffffff;"
-            "    border: 1px solid #555555;"
-            "    padding: 5px;"
-            "}"
-        );
-        m_commandLine->setPlaceholderText("Enter stdgeo command...");
-        
-        m_mainLayout->addWidget(m_outputDisplay, 1);
-        m_mainLayout->addWidget(m_commandLine);
-    }
+    // QProcess-based terminal implementation
+    m_outputDisplay = new QTextEdit(this);
+    m_outputDisplay->setReadOnly(true);
+    m_outputDisplay->setFont(QFont("Consolas", 10));
+    m_outputDisplay->setStyleSheet(
+        "QTextEdit {"
+        "    background-color: #2b2b2b;"
+        "    color: #ffffff;"
+        "    border: 1px solid #555555;"
+        "}"
+    );
+    
+    m_commandLine = new QLineEdit(this);
+    m_commandLine->setFont(QFont("Consolas", 10));
+    m_commandLine->setStyleSheet(
+        "QLineEdit {"
+        "    background-color: #2b2b2b;"
+        "    color: #ffffff;"
+        "    border: 1px solid #555555;"
+        "    padding: 5px;"
+        "}"
+    );
+    m_commandLine->setPlaceholderText("Enter stdgeo command...");
+    
+    m_mainLayout->addWidget(m_outputDisplay, 1);
+    m_mainLayout->addWidget(m_commandLine);
     
     // Connect signals
     connect(m_sessionButton, &QPushButton::clicked, this, &TerminalWidget::onSessionButtonClicked);
     connect(m_clearButton, &QPushButton::clicked, this, &TerminalWidget::onClearButtonClicked);
-    
-    if (m_commandLine) {
-        connect(m_commandLine, &QLineEdit::returnPressed, this, &TerminalWidget::onCommandLineReturnPressed);
-    }
+    connect(m_commandLine, &QLineEdit::returnPressed, this, &TerminalWidget::onCommandLineReturnPressed);
 }
 
 // Initializes QProcess for CLI communication and connects process signals
@@ -144,6 +160,23 @@ void TerminalWidget::setupTerminal()
 {
     m_cliProcess = new QProcess(this);
     
+    connect(m_cliProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &TerminalWidget::onProcessFinished);
+    connect(m_cliProcess, &QProcess::errorOccurred, this, &TerminalWidget::onProcessError);
+    connect(m_cliProcess, &QProcess::readyReadStandardOutput, this, &TerminalWidget::onReadyReadStandardOutput);
+    connect(m_cliProcess, &QProcess::readyReadStandardError, this, &TerminalWidget::onReadyReadStandardError);
+    
+    m_terminalFont = QFont("Consolas", 10);
+    if (!m_terminalFont.exactMatch()) {
+        m_terminalFont = QFont("Courier New", 10);
+    }
+}
+
+// Connects to existing shared QProcess for CLI communication
+void TerminalWidget::setupSharedTerminal()
+{
+    // m_cliProcess is already set to the shared session in constructor
+    // Just connect to its signals
     connect(m_cliProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &TerminalWidget::onProcessFinished);
     connect(m_cliProcess, &QProcess::errorOccurred, this, &TerminalWidget::onProcessError);
@@ -223,16 +256,6 @@ void TerminalWidget::startInteractiveSession()
         return;
     }
     
-#ifdef HAVE_QTERMWIDGET
-    if (m_useNativeTerminal && m_nativeTerminal) {
-        m_nativeTerminal->startShellProgram();
-        m_sessionMode = true;
-        updateSessionButton();
-        emit sessionStarted();
-        return;
-    }
-#endif
-
     appendOutput("Starting stdgeo interactive session...\n", m_promptColor);
     
     m_cliProcess->start(m_stdgeoBinaryPath, QStringList() << "session");
@@ -252,16 +275,6 @@ void TerminalWidget::startInteractiveSession()
 // Terminates the current interactive session gracefully
 void TerminalWidget::stopSession()
 {
-#ifdef HAVE_QTERMWIDGET
-    if (m_useNativeTerminal && m_nativeTerminal) {
-        // Native terminal handles session management internally
-        m_sessionMode = false;
-        updateSessionButton();
-        emit sessionEnded();
-        return;
-    }
-#endif
-
     if (m_cliProcess->state() != QProcess::NotRunning) {
         sendCommand("quit");
         if (!m_cliProcess->waitForFinished(2000)) {
@@ -282,13 +295,6 @@ void TerminalWidget::executeCommand(const QString &command)
 {
     if (command.isEmpty()) return;
     
-#ifdef HAVE_QTERMWIDGET
-    if (m_useNativeTerminal && m_nativeTerminal) {
-        m_nativeTerminal->sendText(command + "\n");
-        return;
-    }
-#endif
-
     if (m_sessionMode && m_cliProcess->state() == QProcess::Running) {
         sendCommand(command);
     } else {
@@ -338,20 +344,14 @@ void TerminalWidget::sendCommand(const QString &command)
 // Clears the terminal output display
 void TerminalWidget::clear()
 {
-    if (m_outputDisplay) {
-        m_outputDisplay->clear();
-        appendPrompt();
-    }
+    if (!m_outputDisplay) { return; }
+    m_outputDisplay->clear();
+    appendPrompt();
 }
 
 // Returns true if CLI process is currently running
 bool TerminalWidget::isCliRunning() const
 {
-#ifdef HAVE_QTERMWIDGET
-    if (m_useNativeTerminal) {
-        return m_sessionMode;
-    }
-#endif
     return m_cliProcess && m_cliProcess->state() == QProcess::Running;
 }
 
@@ -471,8 +471,8 @@ void TerminalWidget::appendOutput(const QString &text, const QColor &color)
 // Displays command prompt in terminal output
 void TerminalWidget::appendPrompt()
 {
-    if (m_outputDisplay && !m_sessionMode) {
-        appendOutput("stdgeo> ", m_promptColor);
+    if (!m_sessionMode) {
+        appendOutput("> ", m_promptColor);
     }
 }
 
@@ -491,11 +491,6 @@ void TerminalWidget::updateSessionButton()
 // Handles keyboard events for command history navigation
 void TerminalWidget::keyPressEvent(QKeyEvent *event)
 {
-    if (!m_commandLine) {
-        QWidget::keyPressEvent(event);
-        return;
-    }
-    
     // Handle command history navigation
     if (event->key() == Qt::Key_Up) {
         if (m_historyIndex > 0) {

@@ -16,6 +16,9 @@
 #include <QCloseEvent>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <QDir>
+#include <QFile>
+#include <QDebug>
 
 // Constructor - sets up the main window with splitter layout, geometry viewer, and terminal
 MainWindow::MainWindow(QWidget *parent)
@@ -25,9 +28,13 @@ MainWindow::MainWindow(QWidget *parent)
     , m_terminalWidget(nullptr)
     , m_geometryCollection(nullptr)
     , m_refreshTimer(new QTimer(this))
+    , m_stdgeoSession(nullptr)
 {
     // Initialize geometry collection
     m_geometryCollection = geometry_collection_new();
+    
+    // Start shared stdgeo session
+    startSharedSession();
     
     // Setup UI
     createActions();
@@ -54,6 +61,11 @@ MainWindow::MainWindow(QWidget *parent)
 // Destructor - cleans up geometry collection resources
 MainWindow::~MainWindow()
 {
+    // Stop terminal session if still running
+    if (m_terminalWidget && m_terminalWidget->isCliRunning()) {
+        m_terminalWidget->stopSession();
+    }
+    
     if (m_geometryCollection) {
         geometry_collection_free(m_geometryCollection);
     }
@@ -170,8 +182,11 @@ void MainWindow::setupLayout()
     m_geometryViewer = new GeometryViewer(this);
     m_geometryViewer->setGeometryCollection(m_geometryCollection);
     
-    // Create terminal widget
-    m_terminalWidget = new TerminalWidget(this);
+    // Create terminal widget with shared session
+    // TODO This is where we used to use the other constructor
+    // TODO I agree that the terminal and the main window should share
+    // TODO the same process, so the new way is probably better.
+    m_terminalWidget = new TerminalWidget(m_stdgeoSession, this);
     
     // Add widgets to splitter
     m_centralSplitter->addWidget(m_geometryViewer);
@@ -352,6 +367,54 @@ void MainWindow::onGeometryCountChanged(int count)
 // Handles application close event with clean shutdown
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    // Stop shared session before closing
+    if (m_stdgeoSession && m_stdgeoSession->state() != QProcess::NotRunning) {
+        m_stdgeoSession->write("quit\n");
+        if (!m_stdgeoSession->waitForFinished(2000)) {
+            m_stdgeoSession->kill();
+            m_stdgeoSession->waitForFinished(1000);
+        }
+    }
+    
     // Clean shutdown
     event->accept();
+}
+
+// Starts the shared stdgeo session that will be used by both viewer and terminal
+void MainWindow::startSharedSession()
+{
+    m_stdgeoSession = new QProcess(this);
+    
+    // Find stdgeo binary - use same logic as TerminalWidget
+    QString stdgeoBinaryPath;
+    
+    // Look for the stdgeo binary in various locations
+    QStringList searchPaths = {
+        QDir::currentPath() + "/target/debug/stdgeo",
+        QDir::currentPath() + "/target/release/stdgeo", 
+        QDir::currentPath() + "/build/bin/stdgeo",
+        QDir::currentPath() + "/build/target/release/stdgeo"
+    };
+    
+    for (const QString &path : searchPaths) {
+        if (QFile::exists(path)) {
+            stdgeoBinaryPath = path;
+            break;
+        }
+    }
+    
+    // Fallback to system PATH
+    if (stdgeoBinaryPath.isEmpty()) {
+        stdgeoBinaryPath = "stdgeo";
+    }
+    
+    // Start the session
+    m_stdgeoSession->start(stdgeoBinaryPath, QStringList() << "session");
+    
+    if (!m_stdgeoSession->waitForStarted(3000)) {
+        qWarning() << "Failed to start shared stdgeo session";
+        return;
+    }
+    
+    qDebug() << "Started shared stdgeo session with PID:" << m_stdgeoSession->processId();
 }

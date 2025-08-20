@@ -15,9 +15,7 @@
 #include <QFont>
 #include <QFileSystemWatcher>
 
-#ifdef HAVE_QTERMWIDGET
-#include <qtermwidget6/qtermwidget.h>
-#endif
+// Removed qtermwidget dependency - using QProcess-based thin wrapper
 
 class TerminalWidget : public QWidget
 {
@@ -25,6 +23,7 @@ class TerminalWidget : public QWidget
 
 public:
     explicit TerminalWidget(QWidget *parent = nullptr);
+    explicit TerminalWidget(QProcess *sharedSession, QWidget *parent = nullptr);
     ~TerminalWidget();
 
     void executeCommand(const QString &command);
@@ -57,6 +56,7 @@ private slots:
 private:
     void setupUI();
     void setupTerminal();
+    void setupSharedTerminal();
     void appendOutput(const QString &text, const QColor &color = Qt::black);
     void appendPrompt();
     void updateSessionButton();
@@ -72,10 +72,6 @@ private:
     QPushButton *m_clearButton;
     QLabel *m_statusLabel;
     
-#ifdef HAVE_QTERMWIDGET
-    QTermWidget *m_nativeTerminal;
-#endif
-    bool m_useNativeTerminal;
 
     // Process management
     QProcess *m_cliProcess;

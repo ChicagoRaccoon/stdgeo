@@ -14,6 +14,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QApplication>
+#include <QProcess>
 #include <memory>
 
 #include "geometryviewer.h"
@@ -52,6 +53,7 @@ private:
     void setupLayout();
     void connectSignals();
     void updateGeometryDisplay();
+    void startSharedSession();
 
     // UI Components
     QSplitter *m_centralSplitter;
@@ -87,6 +89,9 @@ private:
     GeometryCollection *m_geometryCollection;
     QString m_currentFile;
     QTimer *m_refreshTimer;
+    
+    // Shared stdgeo session
+    QProcess *m_stdgeoSession;
 };
 
 #endif // MAINWINDOW_H
