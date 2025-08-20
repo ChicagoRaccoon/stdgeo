@@ -170,6 +170,17 @@ print_status "Setting up build directory..."
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
+# Configure Qt6 path if available
+QT6_PATH="../../../Qt/6.9.1/gcc_64"
+if [[ -d "$QT6_PATH" ]]; then
+    export CMAKE_PREFIX_PATH="$QT6_PATH:$CMAKE_PREFIX_PATH"
+    export PKG_CONFIG_PATH="$QT6_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
+    export LD_LIBRARY_PATH="$QT6_PATH/lib:$LD_LIBRARY_PATH"
+    print_status "Qt6 found at: $QT6_PATH"
+else
+    print_status "QT NOT FOUND at: $QT6_PATH"
+fi
+
 # Configure with CMake
 print_status "Configuring with CMake..."
 cmake_cmd="cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE"

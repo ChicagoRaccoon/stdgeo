@@ -7,10 +7,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find Qt6
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGL OpenGLWidgets)
 
+# Set rpath to prefer the Qt installation we're using
+get_target_property(QT_CORE_LOCATION Qt6::Core LOCATION)
+get_filename_component(QT_LIB_DIR "${QT_CORE_LOCATION}" DIRECTORY)
+set(CMAKE_INSTALL_RPATH "${QT_LIB_DIR}")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
+# Add Qt library directory to link directories
+link_directories("${QT_LIB_DIR}")
+
 # Add the Qt terminal widget (QTermWidget) - we'll use it if available
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
     pkg_check_modules(QTERMWIDGET qtermwidget6)
+endif()
+
+# Also try to find qtermwidget6 directly
+if(NOT QTERMWIDGET_FOUND)
+    find_library(QTERMWIDGET_LIBRARIES NAMES qtermwidget6 PATHS /usr/local/lib)
+    find_path(QTERMWIDGET_INCLUDE_DIRS NAMES qtermwidget6/qtermwidget.h PATHS /usr/local/include)
+    if(QTERMWIDGET_LIBRARIES AND QTERMWIDGET_INCLUDE_DIRS)
+        set(QTERMWIDGET_FOUND TRUE)
+    endif()
 endif()
 
 # Include directories

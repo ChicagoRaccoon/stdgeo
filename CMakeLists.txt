@@ -124,6 +124,11 @@ add_custom_target(
 option(BUILD_QT_VIEWER "Build Qt6 geometry viewer" ON)
 
 if(BUILD_QT_VIEWER)
+    # Set Qt6 path if not already set
+    if(NOT DEFINED Qt6_DIR AND EXISTS "${CMAKE_SOURCE_DIR}/../Qt/6.9.1/gcc_64")
+        set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/../Qt/6.9.1/gcc_64" ${CMAKE_PREFIX_PATH})
+    endif()
+    
     find_package(Qt6 QUIET COMPONENTS Core Widgets OpenGL OpenGLWidgets)
     if(Qt6_FOUND)
         add_subdirectory(qt-viewer)
