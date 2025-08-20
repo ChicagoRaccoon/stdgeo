@@ -15,7 +15,7 @@
 //! ## Architecture
 //! 
 //! ```text
-//! stdgeo-lib
+//! stdgeo
 //! ├── geometry    - Core geometric types and operations
 //! │   ├── Point   - 2D point with x,y coordinates
 //! │   ├── Line    - Line segment defined by two points

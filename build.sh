@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default values
-BUILD_TYPE="Release"
+BUILD_TYPE="debug"
 BUILD_DIR="build"
 CLEAN=false
 TEST=false
@@ -47,7 +47,7 @@ USAGE:
     $0 [OPTIONS]
 
 OPTIONS:
-    -t, --type TYPE         Build type: Debug or Release (default: Release)
+    -t, --type TYPE         Build type: debug or release (default: release)
     -d, --build-dir DIR     Build directory (default: build)
     -c, --clean             Clean build directory before building
     -T, --test              Run tests after building
@@ -59,9 +59,9 @@ OPTIONS:
 
 EXAMPLES:
     $0                      # Build in release mode
-    $0 -t Debug -T          # Debug build with tests
-    $0 -c -i                # Clean build and install
-    $0 -t Debug -v -T       # Debug build with verbose output and tests
+    $0 -t debug -T          # debug build with tests
+    $0 -c -i                # clean build and install
+    $0 -t debug -v -T       # debug build with verbose output and tests
 
 TARGETS:
     The script supports the following CMake targets:
@@ -126,8 +126,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate build type
-if [[ "$BUILD_TYPE" != "Debug" && "$BUILD_TYPE" != "Release" ]]; then
-    print_error "Invalid build type: $BUILD_TYPE. Must be 'Debug' or 'Release'."
+if [[ "$BUILD_TYPE" != "debug" && "$BUILD_TYPE" != "release" ]]; then
+    print_error "Invalid build type: $BUILD_TYPE. Must be 'debug' or 'release'."
     exit 1
 fi
 

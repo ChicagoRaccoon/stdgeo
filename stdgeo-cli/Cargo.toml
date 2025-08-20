@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "stdgeo"
+name = "stdgeo-cli"
 path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
-stdgeo-lib = { path = "../stdgeo-lib" }
+stdgeo = { path = "../stdgeo" }
 anyhow = "1.0"
 rustyline = "13.0"
 

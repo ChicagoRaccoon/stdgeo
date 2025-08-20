@@ -78,7 +78,7 @@
 //! ```
 
 use clap::{Parser, Subcommand};
-use stdgeo_lib::{
+use stdgeo::{
     geometry::{Geometry, Point, Line, degrees_to_radians},
     io::{read_geometry_file, write_geometry_file, read_simple_format, write_simple_format}
 };

@@ -1,14 +1,15 @@
 [workspace]
-members = ["stdgeo-cli", "stdgeo-lib"]
+members = ["stdgeo-cli", "stdgeo"]
 resolver = "2"
 
 # Workspace profiles apply to all members of the workspace
 [profile.release]
 strip = true             # Remove debug symbols
-opt-level = "z"          # Optimize for size
+debug = false            # Do not include debug info
+opt-level = 3            # Optimize for speed
 lto = true               # Link-time optimization
 codegen-units = 1        # Better optimization
-panic = "abort"          # Don't include unwinding code
-overflow-checks = false
-debug = false
+panic = "abort"          # Don't include unwinding code - TODO Matt. I may want to undo/revert this flag at some point.
+overflow-checks = false  # Disable runtime overflow checks
+
 

@@ -43,7 +43,7 @@ else()
     set(RUST_LIB_DIR "${CMAKE_CURRENT_BINARY_DIR}/../../target/release")
 endif()
 
-target_link_libraries(test_geometryviewer PRIVATE "${RUST_LIB_DIR}/libstdgeo_lib.so")
+target_link_libraries(test_geometryviewer PRIVATE "${RUST_LIB_DIR}/libstdgeo.so")
 target_link_directories(test_geometryviewer PRIVATE ${RUST_LIB_DIR})
 
 # Test for TerminalWidget
@@ -57,21 +57,6 @@ target_link_libraries(test_terminalwidget PRIVATE
     Qt6::Widgets
     Qt6::Test
 )
-
-# Add qtermwidget if available
-find_package(PkgConfig)
-if(PkgConfig_FOUND)
-    pkg_check_modules(QTERMWIDGET qtermwidget6)
-    if(QTERMWIDGET_FOUND)
-        target_compile_definitions(test_terminalwidget PRIVATE HAVE_QTERMWIDGET)
-        target_link_libraries(test_terminalwidget PRIVATE ${QTERMWIDGET_LIBRARIES})
-        target_include_directories(test_terminalwidget PRIVATE ${QTERMWIDGET_INCLUDE_DIRS})
-        
-        target_compile_definitions(test_geometryviewer PRIVATE HAVE_QTERMWIDGET)
-        target_link_libraries(test_geometryviewer PRIVATE ${QTERMWIDGET_LIBRARIES})
-        target_include_directories(test_geometryviewer PRIVATE ${QTERMWIDGET_INCLUDE_DIRS})
-    endif()
-endif()
 
 # Ensure Rust library is built first
 add_dependencies(test_geometryviewer cargo_build)

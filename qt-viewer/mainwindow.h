@@ -19,7 +19,7 @@
 
 #include "geometryviewer.h"
 #include "terminalwidget.h"
-#include "../stdgeo_lib.h"
+#include "../stdgeo.h"
 
 class MainWindow : public QMainWindow
 {

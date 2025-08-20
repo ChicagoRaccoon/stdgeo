@@ -1,10 +1,10 @@
 [package]
-name = "stdgeo-lib"
+name = "stdgeo"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "stdgeo_lib"
+name = "stdgeo"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

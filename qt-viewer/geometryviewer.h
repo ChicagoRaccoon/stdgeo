@@ -10,7 +10,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QTimer>
-#include "../stdgeo_lib.h"
+#include "../stdgeo.h"
 
 class GeometryViewer : public QOpenGLWidget, protected QOpenGLFunctions
 {

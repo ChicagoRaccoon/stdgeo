@@ -57,7 +57,7 @@ else()
     set(RUST_LIB_DIR "${CMAKE_CURRENT_BINARY_DIR}/../target/release")
 endif()
 
-target_link_libraries(stdgeo-qt-viewer PRIVATE "${RUST_LIB_DIR}/libstdgeo_lib.so")
+target_link_libraries(stdgeo-qt-viewer PRIVATE "${RUST_LIB_DIR}/libstdgeo.so")
 target_link_directories(stdgeo-qt-viewer PRIVATE ${RUST_LIB_DIR})
 
 
