@@ -325,22 +325,22 @@ else
     print_warning "stdgeo-cli not found"
 fi
 
-# Show Qt viewer if built
-if [[ -f "qt-viewer/stdgeo-qt-viewer" ]]; then
+# Show stdgeo-gui if built
+if [[ -f "stdgeo-gui/stdgeo-gui" ]]; then
     
-    QT_BINARY_PATH=$(realpath "qt-viewer/stdgeo-qt-viewer")
+    QT_BINARY_PATH=$(realpath "stdgeo-gui/stdgeo-gui")
     
     # Print path
     echo
-    print_status "Qt GUI viewer available at:"
+    print_status "stdgeo-gui available at:"
     echo "  $QT_BINARY_PATH"
 
     # Show basic usage
     echo
-    print_status "To start the Qt viewer:"
-    echo "  stdgeo-qt-viewer"
+    print_status "To start the stdgeo-gui:"
+    echo "  stdgeo-gui"
 else
-    print_warning "qt-viewer not found"
+    print_warning "stdgeo-gui not found"
 fi
 
 echo "==============================================================================="

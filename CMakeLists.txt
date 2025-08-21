@@ -8,7 +8,7 @@ project(stdgeo LANGUAGES CXX)
 
 # Project names
 set(STDGEO_CLI_NAME "stdgeo-cli")
-set(STDGEO_GUI_NAME "qt-viewer")
+set(STDGEO_GUI_NAME "stdgeo-gui")
 set(STDGEO_LIB_NAME "stdgeo")
 
 # Project directories
@@ -75,9 +75,9 @@ message(STATUS "  ${CARGO_VERSION}")
 ###############################################################################
 # Build Targets
 
-# Custom target to build the qt-viewer
-# Note that the stdgeo-qt-viewer target is defined in the qt-viewer directory
-add_custom_target(qt_viewer DEPENDS stdgeo-qt-viewer)
+# Custom target to build the stdgeo-gui
+# Note that the stdgeo-gui target is defined in the stdgeo-gui directory
+add_custom_target(stdgeo-gui-build DEPENDS stdgeo-gui)
 
 
 # Rust build target
@@ -104,7 +104,7 @@ add_custom_target(
     qt_test
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target run_qt_tests
     COMMENT "Running Qt application tests"
-    DEPENDS qt_viewer
+    DEPENDS stdgeo-gui-build
 )
 
 
@@ -153,7 +153,7 @@ install(
 # TODO Poss We have a similar target in a sub CMakeLists file
 # Install target for stdgeo-gui
 install(
-    TARGETS stdgeo-qt-viewer
+    TARGETS stdgeo-gui
     DESTINATION bin
     COMPONENT Runtime
 )
@@ -186,6 +186,6 @@ add_custom_target(
 )
 
 # Add an alias for the main build target
-add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy qt_viewer)
+add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy stdgeo-gui-build)
 
 

@@ -34,7 +34,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 ###############################################################################
 # Target Definitions
 
-set(TARGET_NAME "stdgeo-qt-viewer")
+set(TARGET_NAME stdgeo-gui)
 
 # Define the executable
 set(SOURCES
@@ -102,8 +102,8 @@ install(
 add_custom_command(
     TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/stdgeo-qt-viewer"
-    "${CMAKE_CURRENT_BINARY_DIR}/../bin/stdgeo-qt-viewer"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/${STDGEO_GUI_NAME}"
+    "${CMAKE_CURRENT_BINARY_DIR}/../bin/${STDGEO_GUI_NAME}"
 )
 
 ###############################################################################
