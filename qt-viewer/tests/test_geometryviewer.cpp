@@ -12,7 +12,7 @@
 #include <QSignalSpy>
 #include <QMouseEvent>
 #include "../geometryviewer.h"
-#include "../../stdgeo_lib.h"
+#include "../../stdgeo.h"
 
 // Test class for GeometryViewer OpenGL widget validation
 class TestGeometryViewer : public QObject

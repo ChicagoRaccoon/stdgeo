@@ -1,11 +1,51 @@
 cmake_minimum_required(VERSION 3.16)
 project(stdgeo LANGUAGES CXX)
 
+###############################################################################
+# Project Settings
+
+# Note that most paths are relative to the build/ directory
+
+# Project names
+set(STDGEO_CLI_NAME "stdgeo-cli")
+set(STDGEO_GUI_NAME "qt-viewer")
+set(STDGEO_LIB_NAME "stdgeo")
+
+# Project directories
+set(STDGEO_CLI_DIR "${CMAKE_SOURCE_DIR}/${STDGEO_CLI_NAME}")
+set(STDGEO_GUI_DIR "${CMAKE_SOURCE_DIR}/${STDGEO_GUI_NAME}")
+set(STDGEO_LIB_DIR "${CMAKE_SOURCE_DIR}/${STDGEO_LIB_NAME}")
+
+# Final output directories
+set(BIN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(LIB_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/lib")
+
+# Qt6 directory
+set(LOCAL_QT6_DIR "${CMAKE_SOURCE_DIR}/../../Qt/6.9.1/gcc_64")
+
+# Set Qt6 path if not already set
+if(NOT DEFINED Qt6_DIR AND EXISTS "${LOCAL_QT6_DIR}")
+    set(CMAKE_PREFIX_PATH "${LOCAL_QT6_DIR}" ${CMAKE_PREFIX_PATH})
+    message("Qt6 found at: ${LOCAL_QT6_DIR}")
+else()
+    message(FATAL_ERROR "Qt6 directory does not exist: ${LOCAL_QT6_DIR}")
+endif()
+
+###############################################################################
+# Find Build Resources
+
 # Find Rust/Cargo
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
 find_program(RUSTC_EXECUTABLE rustc REQUIRED)
 
-# Set build type specific configurations
+# Find Qt6
+# This command will set Qt6_DIR and Qt6_FOUND if stuff is found
+find_package(Qt6 REQUIRED QUIET COMPONENTS Core Widgets OpenGL OpenGLWidgets)
+
+###############################################################################
+# Configure Build
+
+# Configure the Rust (and Qt) builds
 # Note that you do NOT need a --debug build flag with Cargo
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
     set(CARGO_BUILD_TYPE "debug")
@@ -17,10 +57,30 @@ else()
     set(TARGET_DIR "release")
 endif()
 
-# Set output directory
-set(BINARY_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
+# Configure the Qt6 Build
+# This line effectively calls the CMakeLists file in the specified subdirectory
+add_subdirectory(${STDGEO_GUI_NAME})
 
-# Custom target to build the Rust project
+
+# Get Rust & Cargo version information
+execute_process(COMMAND ${RUSTC_EXECUTABLE} --version OUTPUT_VARIABLE RUSTC_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${CARGO_EXECUTABLE} --version OUTPUT_VARIABLE CARGO_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# Print Rust & Cargo version information
+message(STATUS "Rust toolchain information:")
+message(STATUS "  ${RUSTC_VERSION}")
+message(STATUS "  ${CARGO_VERSION}")
+
+
+###############################################################################
+# Build Targets
+
+# Custom target to build the qt-viewer
+# Note that the stdgeo-qt-viewer target is defined in the qt-viewer directory
+add_custom_target(qt_viewer DEPENDS stdgeo-qt-viewer)
+
+
+# Rust build target
 add_custom_target(
     cargo_build ALL
     COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/target
@@ -29,7 +89,7 @@ add_custom_target(
     COMMENT "Building Rust workspace with Cargo"
 )
 
-# Custom target to run tests
+# Rust test target
 add_custom_target(
     cargo_test
     COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/target
@@ -39,17 +99,16 @@ add_custom_target(
     DEPENDS cargo_build
 )
 
-# Qt tests target
-if(BUILD_QT_VIEWER AND Qt6_FOUND)
-    add_custom_target(
-        qt_test
-        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target run_qt_tests
-        COMMENT "Running Qt application tests"
-        DEPENDS qt_viewer
-    )
-endif()
+# Qt test target
+add_custom_target(
+    qt_test
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target run_qt_tests
+    COMMENT "Running Qt application tests"
+    DEPENDS qt_viewer
+)
 
-# Custom target to run clippy
+
+# Rust Clippy target
 add_custom_target(
     cargo_clippy
     COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/target
@@ -59,7 +118,7 @@ add_custom_target(
     DEPENDS cargo_build
 )
 
-# Custom target to format code
+# Rust format-code target
 add_custom_target(
     cargo_fmt
     COMMAND ${CARGO_EXECUTABLE} fmt
@@ -68,30 +127,36 @@ add_custom_target(
 )
 
 # Copy binary to standard location
+# Custom command that runs after the cargo_build target
 add_custom_command(
     TARGET cargo_build POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${BINARY_OUTPUT_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${BIN_OUTPUT_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${LIB_OUTPUT_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_CURRENT_BINARY_DIR}/target/${TARGET_DIR}/stdgeo
-            ${BINARY_OUTPUT_DIR}/stdgeo
+            ${CMAKE_CURRENT_BINARY_DIR}/target/${TARGET_DIR}/stdgeo-cli
+            ${BIN_OUTPUT_DIR}/stdgeo-cli
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_BINARY_DIR}/target/${TARGET_DIR}/libstdgeo.so
+            ${LIB_OUTPUT_DIR}/libstdgeo.so
     COMMENT "Copying binary to output directory"
 )
 
-# Install target
+# TODO Poss We may want to change the destination
+# Install target for stdgeo-cli
 install(
-    PROGRAMS ${BINARY_OUTPUT_DIR}/stdgeo
+    PROGRAMS ${BIN_OUTPUT_DIR}/stdgeo-cli
     DESTINATION bin
     COMPONENT Runtime
 )
 
-# Install Qt viewer if built
-if(BUILD_QT_VIEWER AND Qt6_FOUND)
-    install(
-        TARGETS stdgeo-qt-viewer
-        DESTINATION bin
-        COMPONENT Runtime
-    )
-endif()
+# TODO Poss We may want to change the destination
+# TODO Poss We have a similar target in a sub CMakeLists file
+# Install target for stdgeo-gui
+install(
+    TARGETS stdgeo-qt-viewer
+    DESTINATION bin
+    COMPONENT Runtime
+)
 
 # Clean target
 add_custom_target(
@@ -120,36 +185,7 @@ add_custom_target(
     DEPENDS cargo_build
 )
 
-# Qt6 application
-option(BUILD_QT_VIEWER "Build Qt6 geometry viewer" ON)
-
-if(BUILD_QT_VIEWER)
-    # Set Qt6 path if not already set
-    if(NOT DEFINED Qt6_DIR AND EXISTS "${CMAKE_SOURCE_DIR}/../Qt/6.9.1/gcc_64")
-        set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/../Qt/6.9.1/gcc_64" ${CMAKE_PREFIX_PATH})
-    endif()
-    
-    find_package(Qt6 QUIET COMPONENTS Core Widgets OpenGL OpenGLWidgets)
-    if(Qt6_FOUND)
-        add_subdirectory(qt-viewer)
-        add_custom_target(qt_viewer DEPENDS stdgeo-qt-viewer)
-        message(STATUS "Qt6 found - building Qt viewer")
-    else()
-        message(WARNING "Qt6 not found - skipping Qt viewer")
-        set(BUILD_QT_VIEWER OFF)
-    endif()
-endif()
-
 # Add an alias for the main build target
-if(BUILD_QT_VIEWER AND Qt6_FOUND)
-    add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy qt_viewer)
-else()
-    add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy)
-endif()
+add_custom_target(all_targets DEPENDS cargo_build cargo_test cargo_clippy qt_viewer)
 
-# Print build information
-message(STATUS "Rust toolchain information:")
-execute_process(COMMAND ${RUSTC_EXECUTABLE} --version OUTPUT_VARIABLE RUSTC_VERSION)
-execute_process(COMMAND ${CARGO_EXECUTABLE} --version OUTPUT_VARIABLE CARGO_VERSION)
-message(STATUS "  ${RUSTC_VERSION}")
-message(STATUS "  ${CARGO_VERSION}")
+

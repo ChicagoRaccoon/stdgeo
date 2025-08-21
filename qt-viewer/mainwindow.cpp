@@ -389,14 +389,17 @@ void MainWindow::startSharedSession()
     QString stdgeoBinaryPath;
     
     // Look for the stdgeo binary in various locations
+    // TODO Poss. We need to make this more robust
     QStringList searchPaths = {
-        QDir::currentPath() + "/target/debug/stdgeo",
-        QDir::currentPath() + "/target/release/stdgeo", 
-        QDir::currentPath() + "/build/bin/stdgeo",
-        QDir::currentPath() + "/build/target/release/stdgeo"
+        QDir::currentPath() + "/../lib/stdgeo-cli",
+        QDir::currentPath() + "/target/debug/stdgeo-cli",
+        QDir::currentPath() + "/target/release/stdgeo-cli", 
+        QDir::currentPath() + "/build/bin/stdgeo-cli",
+        QDir::currentPath() + "/build/target/release/stdgeo-cli"
     };
     
     for (const QString &path : searchPaths) {
+        // qDebug() << "Searching: " << path << '\n';
         if (QFile::exists(path)) {
             stdgeoBinaryPath = path;
             break;

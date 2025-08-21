@@ -78,7 +78,28 @@ TARGETS:
 EOF
 }
 
+###############################################################################
+# Build tool validation
+
+# Check if required tools are available
+if ! command -v cmake &> /dev/null; then
+    print_error "CMake is not installed or not in PATH"
+    exit 1
+fi
+
+if ! command -v cargo &> /dev/null; then
+    print_error "Cargo is not installed or not in PATH"
+    exit 1
+fi
+
+
+###############################################################################
+# Argument Parsing
+
 # Parse command line arguments
+# The 'shift' command removes n arguments from the command line.
+# Some arguments are a simple flag with no subsequent value (shift 1 or shift).
+# Other arguments require a subsequent parameter `-t debug` (shift 2)
 while [[ $# -gt 0 ]]; do
     case $1 in
         -t|--type)
@@ -125,6 +146,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+###############################################################################
+# Argument Validation & Build Configuration
+
 # Validate build type
 if [[ "$BUILD_TYPE" != "debug" && "$BUILD_TYPE" != "release" ]]; then
     print_error "Invalid build type: $BUILD_TYPE. Must be 'debug' or 'release'."
@@ -133,26 +157,17 @@ fi
 
 # Set verbose flag
 if [[ "$VERBOSE" == true ]]; then
-    CMAKE_VERBOSE="VERBOSE=1"
+    CMAKE_VERBOSE="--verbose"
 else
     CMAKE_VERBOSE=""
 fi
 
 print_status "Starting stdgeo build process..."
-print_status "Build type: $BUILD_TYPE"
-print_status "Build directory: $BUILD_DIR"
-print_status "Jobs: $JOBS"
+print_status "Build type      : $BUILD_TYPE"
+print_status "Build directory : $BUILD_DIR"
+print_status "Jobs            : $JOBS"
 
-# Check if required tools are available
-if ! command -v cmake &> /dev/null; then
-    print_error "CMake is not installed or not in PATH"
-    exit 1
-fi
-
-if ! command -v cargo &> /dev/null; then
-    print_error "Cargo is not installed or not in PATH"
-    exit 1
-fi
+###############################################################################
 
 # Clean build directory if requested
 if [[ "$CLEAN" == true ]]; then
@@ -170,54 +185,74 @@ print_status "Setting up build directory..."
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-# Configure Qt6 path if available
+###############################################################################
+# Final Tool Configuration
+
+# Configure Qt6 path
+# This needs to happen *after* we enter the build directory since the path
+# is relative to the build directory.
 QT6_PATH="../../../Qt/6.9.1/gcc_64"
 if [[ -d "$QT6_PATH" ]]; then
     export CMAKE_PREFIX_PATH="$QT6_PATH:$CMAKE_PREFIX_PATH"
-    export PKG_CONFIG_PATH="$QT6_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
+    #export PKG_CONFIG_PATH="$QT6_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
     export LD_LIBRARY_PATH="$QT6_PATH/lib:$LD_LIBRARY_PATH"
-    print_status "Qt6 found at: $QT6_PATH"
+    print_status "Qt6 found at: $BUILD_DIR/$QT6_PATH"
 else
-    print_status "QT NOT FOUND at: $QT6_PATH"
+    print_status "Qt6 NOT found at: $BUILD_DIR/$QT6_PATH"
+    exit 1
 fi
 
-# Configure with CMake
+###############################################################################
+# CMake Configuration
+
 print_status "Configuring with CMake..."
+
+# Assemble the CMake command
 cmake_cmd="cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
 
 if [[ "$INSTALL" == true ]]; then
     cmake_cmd="$cmake_cmd -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX"
 fi
 
+# Append two periods to the end of the CMake command
 cmake_cmd="$cmake_cmd .."
 
 print_status "Running: $cmake_cmd"
+
+# Run CMake
 eval $cmake_cmd
 
+# Validate CMake return code
 if [[ $? -ne 0 ]]; then
-    print_error "CMake configuration failed"
+    print_error "CMake configuration failed."
     exit 1
 fi
 
-print_success "CMake configuration completed"
+print_success "CMake configuration complete!"
 
+###############################################################################
 # Build
-print_status "Building project..."
-cmake_build_cmd="cmake --build . --config $BUILD_TYPE -j $JOBS"
 
-if [[ "$VERBOSE" == true ]]; then
-    cmake_build_cmd="$cmake_build_cmd -- $CMAKE_VERBOSE"
-fi
+print_status "Building project..."
+
+# Asssemble build command
+cmake_build_cmd="cmake --build . --config $BUILD_TYPE -j $JOBS $CMAKE_VERBOSE"
 
 print_status "Running: $cmake_build_cmd"
+
+# Execute build command
 eval $cmake_build_cmd
 
+# Check return code for build command
 if [[ $? -ne 0 ]]; then
     print_error "Build failed"
     exit 1
 fi
 
 print_success "Build completed successfully"
+
+###############################################################################
+# Testing
 
 # Run tests if requested
 if [[ "$TEST" == true ]]; then
@@ -246,6 +281,9 @@ if [[ "$TEST" == true ]]; then
     fi
 fi
 
+###############################################################################
+# Installation
+
 # Install if requested
 if [[ "$INSTALL" == true ]]; then
     print_status "Installing to $INSTALL_PREFIX..."
@@ -259,32 +297,52 @@ if [[ "$INSTALL" == true ]]; then
     print_success "Installation completed"
 fi
 
+###############################################################################
+# Status Messages
+
+echo "========================================================="
+
 print_success "stdgeo build process completed successfully!"
 
 # Show binary locations
-if [[ -f "bin/stdgeo" ]]; then
-    BINARY_PATH=$(realpath "bin/stdgeo")
-    print_status "Rust CLI binary available at: $BINARY_PATH"
+if [[ -f "bin/stdgeo-cli" ]]; then
+    
+    BINARY_PATH=$(realpath "bin/stdgeo-cli")
+
+    # Print CLI path
+    echo
+    print_status "Rust CLI binary available at:"
+    echo "  $BINARY_PATH"
     
     # Show basic usage
     echo
     print_status "To test the CLI:"
-    echo "  $BINARY_PATH --help"
-    echo "  $BINARY_PATH point -x 1.0 -y 2.0"
-    echo "  $BINARY_PATH line --x1 0.0 --y1 0.0 --x2 3.0 --y2 4.0"
-    echo "  $BINARY_PATH session"
+    echo "  stdgeo-cli --help"
+    echo "  stdgeo-cli point -x 1.0 -y 2.0"
+    echo "  stdgeo-cli line --x1 0.0 --y1 0.0 --x2 3.0 --y2 4.0"
+    echo "  stdgeo-cli session"
+else
+    print_warning "stdgeo-cli not found"
 fi
 
 # Show Qt viewer if built
 if [[ -f "qt-viewer/stdgeo-qt-viewer" ]]; then
+    
     QT_BINARY_PATH=$(realpath "qt-viewer/stdgeo-qt-viewer")
-    print_status "Qt GUI viewer available at: $QT_BINARY_PATH"
+    
+    # Print path
+    echo
+    print_status "Qt GUI viewer available at:"
+    echo "  $QT_BINARY_PATH"
+
+    # Show basic usage
     echo
     print_status "To start the Qt viewer:"
-    echo "  $QT_BINARY_PATH"
-    echo "  # Features: Interactive 2D visualization, mouse controls, integrated terminal"
-elif command -v qt6-config &> /dev/null || command -v qmake6 &> /dev/null; then
-    print_warning "Qt6 found but Qt viewer not built. Check CMake configuration."
+    echo "  stdgeo-qt-viewer"
 else
-    print_warning "Qt viewer not available (Qt6 not found)"
+    print_warning "qt-viewer not found"
 fi
+
+echo "==============================================================================="
+
+

@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
 
+###############################################################################
+# Project Settings
+
+
+
+###############################################################################
+# Build Tooling
+
 # Find required packages
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGL OpenGLWidgets Test)
+
+###############################################################################
+# Build Configuration
 
 # Enable testing
 enable_testing()
@@ -22,6 +33,9 @@ set(PARENT_SOURCES
     ../terminalwidget.cpp
 )
 
+###############################################################################
+# GeometryViewer Test
+
 # Test for GeometryViewer
 add_executable(test_geometryviewer 
     test_geometryviewer.cpp
@@ -37,14 +51,15 @@ target_link_libraries(test_geometryviewer PRIVATE
 )
 
 # Link to the Rust library
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(RUST_LIB_DIR "${CMAKE_CURRENT_BINARY_DIR}/../../target/debug")
-else()
-    set(RUST_LIB_DIR "${CMAKE_CURRENT_BINARY_DIR}/../../target/release")
-endif()
+set(RUST_LIB_DIR "${CMAKE_CURRENT_BINARY_DIR}/../../target/${CMAKE_BUILD_TYPE}")
+
 
 target_link_libraries(test_geometryviewer PRIVATE "${RUST_LIB_DIR}/libstdgeo.so")
 target_link_directories(test_geometryviewer PRIVATE ${RUST_LIB_DIR})
+
+
+###############################################################################
+# TerminalWidget Test
 
 # Test for TerminalWidget
 add_executable(test_terminalwidget
@@ -58,7 +73,11 @@ target_link_libraries(test_terminalwidget PRIVATE
     Qt6::Test
 )
 
+###############################################################################
+# Common Configurations
+
 # Ensure Rust library is built first
+# This adds cargo_build as a dependency to the first argument
 add_dependencies(test_geometryviewer cargo_build)
 add_dependencies(test_terminalwidget cargo_build)
 
@@ -77,9 +96,13 @@ set_tests_properties(TerminalWidget PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 
+###############################################################################
+
 # Create a target to run all Qt tests
-add_custom_target(run_qt_tests
+add_custom_target(
+    run_qt_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_geometryviewer test_terminalwidget
     COMMENT "Running Qt application tests"
 )
+
