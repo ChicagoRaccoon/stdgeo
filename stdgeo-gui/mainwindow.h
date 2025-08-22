@@ -14,11 +14,11 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QApplication>
-#include <QProcess>
 #include <memory>
 
 #include "geometryviewer.h"
 #include "terminalwidget.h"
+#include "stdgeoparser.h"
 #include "../stdgeo.h"
 
 class MainWindow : public QMainWindow
@@ -53,7 +53,7 @@ private:
     void setupLayout();
     void connectSignals();
     void updateGeometryDisplay();
-    void startSharedSession();
+    void initializeSharedParser();
 
     // UI Components
     QSplitter *m_centralSplitter;
@@ -90,8 +90,8 @@ private:
     QString m_currentFile;
     QTimer *m_refreshTimer;
     
-    // Shared stdgeo session
-    QProcess *m_stdgeoSession;
+    // Shared stdgeo parser
+    StdGeoParser *m_sharedParser;
 };
 
 #endif // MAINWINDOW_H

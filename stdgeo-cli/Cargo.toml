@@ -10,6 +10,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 stdgeo = { path = "../stdgeo" }
+stdgeo-parser = { path = "../stdgeo-parser" }
 anyhow = "1.0"
 rustyline = "13.0"
 

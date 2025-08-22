@@ -14,8 +14,9 @@
 #include <QKeyEvent>
 #include <QFont>
 #include <QFileSystemWatcher>
+#include "stdgeoparser.h"
 
-// Removed qtermwidget dependency - using QProcess-based thin wrapper
+// Using stdgeo-parser library for direct command execution
 
 class TerminalWidget : public QWidget
 {
@@ -23,12 +24,12 @@ class TerminalWidget : public QWidget
 
 public:
     explicit TerminalWidget(QWidget *parent = nullptr);
-    explicit TerminalWidget(QProcess *sharedSession, QWidget *parent = nullptr);
+    explicit TerminalWidget(StdGeoParser *sharedParser, QWidget *parent = nullptr);
     ~TerminalWidget();
 
     void executeCommand(const QString &command);
     void clear();
-    bool isCliRunning() const;
+    bool isParserReady() const;
 
 public slots:
     void startInteractiveSession();
@@ -44,23 +45,19 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
-    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
-    void onProcessError(QProcess::ProcessError error);
-    void onReadyReadStandardOutput();
-    void onReadyReadStandardError();
     void onCommandLineReturnPressed();
     void onClearButtonClicked();
     void onSessionButtonClicked();
     void watchForGeometryFiles();
+    void onCommandExecuted(const QString &command, const QString &result, bool success);
 
 private:
     void setupUI();
-    void setupTerminal();
-    void setupSharedTerminal();
+    void setupParser();
+    void setupSharedParser();
     void appendOutput(const QString &text, const QColor &color = Qt::black);
     void appendPrompt();
     void updateSessionButton();
-    QString findStdgeoBinary();
     void setupFileWatcher();
 
     // UI Components
@@ -73,10 +70,9 @@ private:
     QLabel *m_statusLabel;
     
 
-    // Process management
-    QProcess *m_cliProcess;
+    // Parser management
+    StdGeoParser *m_parser;
     bool m_sessionMode;
-    QString m_stdgeoBinaryPath;
     QTimer *m_outputTimer;
     
     // File watching for real-time updates

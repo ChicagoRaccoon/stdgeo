@@ -65,7 +65,7 @@ void TestTerminalWidget::init()
 // Cleans up TerminalWidget instance after each test
 void TestTerminalWidget::cleanup()
 {
-    if (m_terminal->isCliRunning()) {
+    if (m_terminal->isParserReady()) {
         m_terminal->stopSession();
         QTest::qWait(1000); // Wait for session to stop
     }
@@ -77,7 +77,7 @@ void TestTerminalWidget::testInitialization()
 {
     QVERIFY(m_terminal != nullptr);
     QVERIFY(m_terminal->isVisible());
-    QVERIFY(!m_terminal->isCliRunning());
+    QVERIFY(!m_terminal->isParserReady());
     
     // Check that UI components are present
     QLineEdit *commandLine = m_terminal->findChild<QLineEdit*>();
@@ -124,14 +124,14 @@ void TestTerminalWidget::testSessionManagement()
     QSignalSpy sessionEndedSpy(m_terminal, &TerminalWidget::sessionEnded);
     
     // Start session
-    QVERIFY(!m_terminal->isCliRunning());
+    QVERIFY(!m_terminal->isParserReady());
     m_terminal->startInteractiveSession();
     
     // Wait for session to start
     bool sessionStarted = sessionStartedSpy.wait(3000);
     if (sessionStarted) {
         QCOMPARE(sessionStartedSpy.count(), 1);
-        QVERIFY(m_terminal->isCliRunning());
+        QVERIFY(m_terminal->isParserReady());
         
         // Stop session
         m_terminal->stopSession();
@@ -140,7 +140,7 @@ void TestTerminalWidget::testSessionManagement()
         bool sessionEnded = sessionEndedSpy.wait(3000);
         QVERIFY(sessionEnded);
         QCOMPARE(sessionEndedSpy.count(), 1);
-        QVERIFY(!m_terminal->isCliRunning());
+        QVERIFY(!m_terminal->isParserReady());
     } else {
         qWarning("Session test skipped - could not start stdgeo session");
     }

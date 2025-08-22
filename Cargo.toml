@@ -1,5 +1,5 @@
 [workspace]
-members = ["stdgeo-cli", "stdgeo"]
+members = ["stdgeo-cli", "stdgeo", "stdgeo-parser"]
 resolver = "2"
 
 # Workspace profiles apply to all members of the workspace

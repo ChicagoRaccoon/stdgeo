@@ -28,6 +28,10 @@
 pub mod geometry;
 pub mod io;
 pub mod ffi;
+pub mod session;
+pub mod command_executor;
 
 pub use geometry::*;
 pub use io::*;
+pub use session::*;
+pub use command_executor::*;

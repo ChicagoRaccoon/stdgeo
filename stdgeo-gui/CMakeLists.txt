@@ -42,12 +42,14 @@ set(SOURCES
     mainwindow.cpp
     geometryviewer.cpp
     terminalwidget.cpp
+    stdgeoparser.cpp
 )
 
 set(HEADERS
     mainwindow.h
     geometryviewer.h
     terminalwidget.h
+    stdgeoparser.h
 )
 
 # Enable Qt automatic MOC, UIC, and RCC
@@ -74,7 +76,10 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 
 # TODO Poss Consider a variable instead of libstdgeo.so
 # Link Rust libraries
-target_link_libraries(${TARGET_NAME} PRIVATE "${RUST_LIB_DIR}/libstdgeo.so")
+target_link_libraries(${TARGET_NAME} PRIVATE 
+    "${RUST_LIB_DIR}/libstdgeo.so"
+    "${RUST_LIB_DIR}/libstdgeo_parser.so"
+)
 target_link_directories(${TARGET_NAME} PRIVATE ${RUST_LIB_DIR})
 
 # Define relative paths to dynamically linked libraries.

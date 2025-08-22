@@ -65,13 +65,24 @@ target_link_directories(test_geometryviewer PRIVATE ${RUST_LIB_DIR})
 add_executable(test_terminalwidget
     test_terminalwidget.cpp
     ../terminalwidget.cpp
+    ../stdgeoparser.cpp
 )
 
+# Link Qt Libraries
 target_link_libraries(test_terminalwidget PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Test
 )
+
+# TODO Poss Consider a variable instead of libstdgeo.so
+# Link Rust libraries
+target_link_libraries(${TARGET_NAME} PRIVATE 
+    "${RUST_LIB_DIR}/libstdgeo.so"
+    "${RUST_LIB_DIR}/libstdgeo_parser.so"
+)
+
+target_link_directories(test_terminalwidget PRIVATE ${RUST_LIB_DIR})
 
 ###############################################################################
 # Common Configurations

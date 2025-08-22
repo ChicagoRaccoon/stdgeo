@@ -1,0 +1,23 @@
+[package]
+name = "stdgeo-parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["Matt Poss <mmcposs@gmail.com.com>"]
+description = "Command line parser library for stdgeo geometry operations"
+license = "MIT"
+repository = "https://github.com/ChicagoRaccoon/stdgeo"
+
+[lib]
+name = "stdgeo_parser"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+stdgeo = { path = "../stdgeo" }
+clap = { version = "4.0", features = ["derive"] }
+anyhow = "1.0"
+thiserror = "1.0"
+serde_json = "1.0"
+
+[dev-dependencies]
+tempfile = "3.0"
