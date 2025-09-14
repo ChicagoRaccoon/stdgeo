@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/../../Qt/6.9.1/gcc_64/include",
+                "${workspaceFolder}/../../Qt/6.9.1/gcc_64/include/QtCore",
+                "${workspaceFolder}/../../Qt/6.9.1/gcc_64/include/QtGui",
+                "${workspaceFolder}/../../Qt/6.9.1/gcc_64/include/QtWidgets",
+                "${workspaceFolder}/../../Qt/6.9.1/gcc_64/include/QtOpenGL",
+                "${workspaceFolder}/../../Qt/6.9.1/gcc_64/include/QtOpenGLWidgets"
+            ],
+            "defines": [
+                "QT_CORE_LIB",
+                "QT_GUI_LIB",
+                "QT_WIDGETS_LIB",
+                "QT_OPENGL_LIB",
+                "QT_OPENGLWIDGETS_LIB"
+            ],
+            "compilerPath": "/usr/bin/gcc", // TODO Poss I don't know if this is correct
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
