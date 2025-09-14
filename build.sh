@@ -4,11 +4,18 @@ set -e
 
 echo "Building StdGeo Qt GUI Application..."
 
-# Check if Qt6 is available
-if ! command -v qmake6 >/dev/null 2>&1 && ! command -v qmake >/dev/null 2>&1; then
-    echo "Error: Qt6 not found. Please install Qt6 development packages."
-    echo "On Ubuntu/Debian: sudo apt install qt6-base-dev qt6-base-dev-tools libqt6opengl6-dev"
-    echo "On Fedora: sudo dnf install qt6-qtbase-devel qt6-qttools-devel qt6-qtopengl-devel"
+# Set Qt6 path using relative path
+QT_DIR="../../Qt/6.9.1/gcc_64"
+QT_ABS_PATH="$(realpath "$QT_DIR" 2>/dev/null || echo "$QT_DIR")"
+if [ -d "$QT_DIR" ]; then
+    echo "Using Qt6 from: $QT_ABS_PATH"
+    export PATH="$QT_ABS_PATH/bin:$PATH"
+    export CMAKE_PREFIX_PATH="$QT_ABS_PATH"
+    export LD_LIBRARY_PATH="$QT_ABS_PATH/lib:$LD_LIBRARY_PATH"
+else
+    echo "Error: Qt6 not found at $QT_DIR"
+    echo "Please ensure Qt 6.9.1 is installed in the parent directory."
+    echo "Expected path: $QT_ABS_PATH"
     exit 1
 fi
 
