@@ -2,6 +2,53 @@
 
 set -e
 
+# Check for command line arguments
+
+# Target: clean
+if [ "$1" = "clean" ] || [ "$1" = "-c" ] || [ "$1" = "--clean" ]; then
+    echo "Cleaning StdGeo Qt GUI Application..."
+    
+    # Define the build directory
+    BUILD_DIR="build"
+
+    # If the build directory exists
+    if [ -d "$BUILD_DIR" ]; then
+        echo "Removing build directory: $BUILD_DIR"
+        rm -rf "$BUILD_DIR"
+        echo "Clean completed successfully!"
+    else
+        echo "Build directory does not exist, nothing to clean."
+    fi
+
+    exit 0
+
+# Target: help
+elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "StdGeo Qt GUI Application Build Script"
+    echo ""
+    echo "USAGE:"
+    echo "  $0 [COMMAND]"
+    echo ""
+    echo "COMMANDS:"
+    echo "  (no args)     Build the Qt OpenGL viewer application"
+    echo "  clean, -c     Remove all build artifacts and the build directory"
+    echo "  help, -h      Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  This script builds a Qt6-based OpenGL viewer with interactive controls."
+    echo "  The application features a 3D cube that can be rotated, panned, and"
+    echo "  zoomed using mouse controls, along with a text editor panel."
+    echo ""
+    echo "REQUIREMENTS:"
+    echo "  - Qt 6.9.1 installed at ../../Qt/6.9.1/gcc_64 (relative to this script)"
+    echo "  - CMake 3.16 or later"
+    echo "  - C++ compiler with C++17 support"
+    echo ""
+    echo "OUTPUT:"
+    echo "  The built executable will be located at: ./build/stdgeo-gui"
+    exit 0
+fi
+
 echo "Building StdGeo Qt GUI Application..."
 
 # Set Qt6 path using relative path
