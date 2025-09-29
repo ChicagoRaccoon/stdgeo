@@ -21,6 +21,13 @@ public:
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseUp(wxMouseEvent& event);
 
+    // View presets
+    void SetViewFront();
+    void SetViewTop();
+    void SetViewSide();
+    void SetViewIsometric();
+    void ResetView();
+
 private:
     // OpenGL initialization and rendering
     void InitGL();

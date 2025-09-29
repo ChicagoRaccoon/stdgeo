@@ -29,7 +29,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 # Find required packages
-find_package(wxWidgets REQUIRED COMPONENTS core base gl)
+find_package(wxWidgets REQUIRED COMPONENTS core base gl aui)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 

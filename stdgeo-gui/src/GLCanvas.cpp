@@ -334,3 +334,39 @@ void GLCanvas::OnMouseUp(wxMouseEvent& event) {
         m_isPanning = false;
     }
 }
+
+// View preset methods
+void GLCanvas::SetViewFront() {
+    m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_pan = glm::vec2(0.0f, 0.0f);
+    m_zoom = 5.0f;
+    Refresh();
+}
+
+void GLCanvas::SetViewTop() {
+    m_rotation = glm::vec3(-glm::half_pi<float>(), 0.0f, 0.0f);  // -90° on X axis
+    m_pan = glm::vec2(0.0f, 0.0f);
+    m_zoom = 5.0f;
+    Refresh();
+}
+
+void GLCanvas::SetViewSide() {
+    m_rotation = glm::vec3(0.0f, glm::half_pi<float>(), 0.0f);  // 90° on Y axis
+    m_pan = glm::vec2(0.0f, 0.0f);
+    m_zoom = 5.0f;
+    Refresh();
+}
+
+void GLCanvas::SetViewIsometric() {
+    m_rotation = glm::vec3(glm::radians(35.26f), glm::radians(45.0f), 0.0f);  // Standard isometric angles
+    m_pan = glm::vec2(0.0f, 0.0f);
+    m_zoom = 5.0f;
+    Refresh();
+}
+
+void GLCanvas::ResetView() {
+    m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_pan = glm::vec2(0.0f, 0.0f);
+    m_zoom = 5.0f;
+    Refresh();
+}
