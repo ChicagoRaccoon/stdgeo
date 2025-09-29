@@ -1,6 +1,8 @@
+// OpenGL rendering canvas with interactive 3D cube viewer
+// Provides pan, zoom, and rotate controls via mouse input
 #pragma once
 
-#include <GL/glew.h>
+#include <GL/glew.h>  // Must be included before other GL headers
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 #include <glm/glm.hpp>
@@ -11,6 +13,7 @@ public:
     GLCanvas(wxWindow* parent, const wxGLAttributes& canvasAttrs);
     ~GLCanvas();
 
+    // Event handlers
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
     void OnMouseWheel(wxMouseEvent& event);
@@ -19,6 +22,7 @@ public:
     void OnMouseUp(wxMouseEvent& event);
 
 private:
+    // OpenGL initialization and rendering
     void InitGL();
     void Render();
     void CreateShaderProgram();
@@ -29,19 +33,19 @@ private:
     bool m_glInitialized;
 
     // OpenGL objects
-    GLuint m_shaderProgram;
-    GLuint m_VAO, m_VBO;
-    GLuint m_mvpLocation;
+    GLuint m_shaderProgram;  // Compiled shader program
+    GLuint m_VAO, m_VBO;     // Vertex array and buffer objects
+    GLuint m_mvpLocation;    // Model-View-Projection uniform location
 
     // Camera/view parameters
-    float m_zoom;
-    glm::vec3 m_rotation;
-    glm::vec2 m_pan;
+    float m_zoom;            // Distance from camera to object
+    glm::vec3 m_rotation;    // Rotation angles (x, y, z)
+    glm::vec2 m_pan;         // Pan offset (x, y)
 
-    // Mouse interaction
+    // Mouse interaction state
     wxPoint m_lastMousePos;
-    bool m_isRotating;
-    bool m_isPanning;
+    bool m_isRotating;       // Left mouse button active
+    bool m_isPanning;        // Right mouse button active
 
     wxDECLARE_EVENT_TABLE();
 };

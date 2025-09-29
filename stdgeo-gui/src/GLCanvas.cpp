@@ -1,3 +1,4 @@
+// Implementation of OpenGL canvas with interactive 3D cube
 #include "GLCanvas.h"
 #include <fstream>
 #include <sstream>
@@ -5,7 +6,7 @@
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
 
-// Helper function to get shader path relative to executable
+// Get full path to shader file relative to executable directory
 static wxString GetShaderPath(const wxString& shaderFile) {
     wxFileName exePath(wxStandardPaths::Get().GetExecutablePath());
     wxString shaderPath = exePath.GetPath() + "/shaders/" + shaderFile;
@@ -18,6 +19,7 @@ static wxString GetShaderPath(const wxString& shaderFile) {
     return shaderPath;
 }
 
+// Event table: maps wxWidgets events to handler methods
 wxBEGIN_EVENT_TABLE(GLCanvas, wxGLCanvas)
     EVT_PAINT(GLCanvas::OnPaint)
     EVT_SIZE(GLCanvas::OnSize)
@@ -55,9 +57,11 @@ GLCanvas::~GLCanvas() {
     }
 }
 
+// Initialize OpenGL context, load extensions, and create rendering resources
 void GLCanvas::InitGL() {
     SetCurrent(*m_context);
 
+    // Initialize GLEW to access modern OpenGL functions
     glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (err != GLEW_OK) {
@@ -65,6 +69,7 @@ void GLCanvas::InitGL() {
         return;
     }
 
+    // Enable depth testing and set background color
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -74,7 +79,9 @@ void GLCanvas::InitGL() {
     m_glInitialized = true;
 }
 
+// Load, compile, and link vertex and fragment shaders into a program
 GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
+    // Locate shader files
     wxString vertexFullPath = GetShaderPath(wxString(vertexPath));
     wxString fragmentFullPath = GetShaderPath(wxString(fragmentPath));
 
@@ -83,6 +90,7 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
         return 0;
     }
 
+    // Read shader source code
     std::ifstream vShaderFile(vertexFullPath.ToStdString());
     std::ifstream fShaderFile(fragmentFullPath.ToStdString());
 
@@ -126,7 +134,7 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
         std::cerr << "Fragment shader compilation failed:\n" << infoLog << std::endl;
     }
 
-    // Link shaders
+    // Link shaders into program
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
@@ -139,6 +147,7 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
         std::cerr << "Shader program linking failed:\n" << infoLog << std::endl;
     }
 
+    // Clean up individual shaders (no longer needed after linking)
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -154,8 +163,9 @@ void GLCanvas::CreateShaderProgram() {
     m_mvpLocation = glGetUniformLocation(m_shaderProgram, "MVP");
 }
 
+// Create colored cube geometry (6 faces, 2 triangles each, 36 vertices total)
 void GLCanvas::CreateCube() {
-    // Cube vertices (position + color)
+    // Vertex data: position (x,y,z) + color (r,g,b)
     float vertices[] = {
         // Front face (red)
         -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,
@@ -206,6 +216,7 @@ void GLCanvas::CreateCube() {
          0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
     };
 
+    // Create and bind OpenGL buffers
     glGenVertexArrays(1, &m_VAO);
     glGenBuffers(1, &m_VBO);
 
@@ -213,27 +224,26 @@ void GLCanvas::CreateCube() {
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Position attribute
+    // Configure vertex attributes: position (location 0)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Color attribute
+    // Configure vertex attributes: color (location 1)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
 }
 
+// Render the scene with current camera parameters
 void GLCanvas::Render() {
     if (!m_glInitialized) return;
 
     SetCurrent(*m_context);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     glUseProgram(m_shaderProgram);
 
-    // Create transformation matrices
+    // Build transformation matrices
     wxSize size = GetSize();
     float aspect = (float)size.x / (float)size.y;
 
@@ -244,9 +254,11 @@ void GLCanvas::Render() {
     model = glm::rotate(model, m_rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, m_rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
 
+    // Send combined MVP matrix to shader
     glm::mat4 mvp = projection * view * model;
     glUniformMatrix4fv(m_mvpLocation, 1, GL_FALSE, &mvp[0][0]);
 
+    // Draw the cube
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
@@ -273,6 +285,7 @@ void GLCanvas::OnSize(wxSizeEvent& event) {
     event.Skip();
 }
 
+// Mouse wheel: zoom in/out (clamped between 1 and 20)
 void GLCanvas::OnMouseWheel(wxMouseEvent& event) {
     float delta = event.GetWheelRotation() / 120.0f;
     m_zoom -= delta * 0.5f;
@@ -280,6 +293,7 @@ void GLCanvas::OnMouseWheel(wxMouseEvent& event) {
     Refresh();
 }
 
+// Mouse move: rotate (left button) or pan (right button)
 void GLCanvas::OnMouseMove(wxMouseEvent& event) {
     wxPoint currentPos = event.GetPosition();
 
@@ -291,7 +305,6 @@ void GLCanvas::OnMouseMove(wxMouseEvent& event) {
     }
     else if (m_isPanning) {
         wxPoint delta = currentPos - m_lastMousePos;
-        wxSize size = GetSize();
         m_pan.x += delta.x * 0.01f;
         m_pan.y -= delta.y * 0.01f;
         Refresh();
@@ -300,6 +313,7 @@ void GLCanvas::OnMouseMove(wxMouseEvent& event) {
     m_lastMousePos = currentPos;
 }
 
+// Mouse button down: begin rotate (left) or pan (right)
 void GLCanvas::OnMouseDown(wxMouseEvent& event) {
     m_lastMousePos = event.GetPosition();
 
@@ -311,6 +325,7 @@ void GLCanvas::OnMouseDown(wxMouseEvent& event) {
     }
 }
 
+// Mouse button up: end rotate or pan
 void GLCanvas::OnMouseUp(wxMouseEvent& event) {
     if (event.LeftUp()) {
         m_isRotating = false;

@@ -1,3 +1,4 @@
+// Main application window with split view: OpenGL canvas and text output
 #pragma once
 
 #include <wx/wx.h>
@@ -8,6 +9,6 @@ public:
     MainFrame(const wxString& title);
 
 private:
-    GLCanvas* m_glCanvas;
-    wxTextCtrl* m_textCtrl;
+    GLCanvas* m_glCanvas;      // 3D rendering viewport
+    wxTextCtrl* m_textCtrl;    // Text output/log window
 };
