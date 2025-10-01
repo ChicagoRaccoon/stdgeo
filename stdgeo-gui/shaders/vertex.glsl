@@ -2,7 +2,7 @@
 #version 330 core
 
 layout (location = 0) in vec3 aPos;    // Vertex position
-layout (location = 1) in vec3 aColor;  // Vertex color
+layout (location = 1) in vec3 aColor;  // Vertex color (optional)
 
 out vec3 fragColor;  // Pass color to fragment shader
 
@@ -10,5 +10,5 @@ uniform mat4 MVP;    // Model-View-Projection matrix
 
 void main() {
     gl_Position = MVP * vec4(aPos, 1.0);  // Transform position to clip space
-    fragColor = aColor;                    // Pass color through unchanged
+    fragColor = aColor;                    // Pass color through (will be overridden for edges)
 }

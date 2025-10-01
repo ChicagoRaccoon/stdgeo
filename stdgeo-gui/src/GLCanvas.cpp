@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <limits>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
 
@@ -26,7 +27,7 @@ wxBEGIN_EVENT_TABLE(GLCanvas, wxGLCanvas)
     EVT_MOUSEWHEEL(GLCanvas::OnMouseWheel)
     EVT_MOTION(GLCanvas::OnMouseMove)
     EVT_LEFT_DOWN(GLCanvas::OnMouseDown)
-    EVT_LEFT_UP(GLCanvas::OnMouseUp)
+    EVT_LEFT_UP(GLCanvas::OnLeftClick)
     EVT_RIGHT_DOWN(GLCanvas::OnMouseDown)
     EVT_RIGHT_UP(GLCanvas::OnMouseUp)
 wxEND_EVENT_TABLE()
@@ -38,6 +39,8 @@ GLCanvas::GLCanvas(wxWindow* parent, const wxGLAttributes& canvasAttrs)
       m_shaderProgram(0),
       m_VAO(0),
       m_VBO(0),
+      m_edgeVAO(0),
+      m_edgeVBO(0),
       m_zoom(5.0f),
       m_rotation(0.0f, 0.0f, 0.0f),
       m_pan(0.0f, 0.0f),
@@ -52,6 +55,8 @@ GLCanvas::~GLCanvas() {
         SetCurrent(*m_context);
         if (m_VAO) glDeleteVertexArrays(1, &m_VAO);
         if (m_VBO) glDeleteBuffers(1, &m_VBO);
+        if (m_edgeVAO) glDeleteVertexArrays(1, &m_edgeVAO);
+        if (m_edgeVBO) glDeleteBuffers(1, &m_edgeVBO);
         if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
         delete m_context;
     }
@@ -75,6 +80,7 @@ void GLCanvas::InitGL() {
 
     CreateShaderProgram();
     CreateCube();
+    CreateEdgeBuffers();
 
     m_glInitialized = true;
 }
@@ -161,6 +167,7 @@ void GLCanvas::CreateShaderProgram() {
         return;
     }
     m_mvpLocation = glGetUniformLocation(m_shaderProgram, "MVP");
+    m_colorLocation = glGetUniformLocation(m_shaderProgram, "overrideColor");
 }
 
 // Create colored cube geometry (6 faces, 2 triangles each, 36 vertices total)
@@ -235,6 +242,62 @@ void GLCanvas::CreateCube() {
     glBindVertexArray(0);
 }
 
+// Create edge geometry for highlighting selected faces
+void GLCanvas::CreateEdgeBuffers() {
+    // Edge vertices for each face (4 edges per face, 2 vertices per edge)
+    // Each face has edges defined as lines
+    float edgeVertices[] = {
+        // Face 0: Front (z = 0.5)
+        -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  // Bottom edge
+         0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  // Right edge
+         0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  // Top edge
+        -0.5f,  0.5f,  0.5f, -0.5f, -0.5f,  0.5f,  // Left edge
+
+        // Face 1: Back (z = -0.5)
+        -0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  // Bottom edge
+         0.5f, -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  // Right edge
+         0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  // Top edge
+        -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  // Left edge
+
+        // Face 2: Left (x = -0.5)
+        -0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  0.5f,  // Bottom edge
+        -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  // Front edge
+        -0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f,  // Top edge
+        -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  // Back edge
+
+        // Face 3: Right (x = 0.5)
+         0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  // Bottom edge
+         0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  // Front edge
+         0.5f,  0.5f,  0.5f,  0.5f,  0.5f, -0.5f,  // Top edge
+         0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  // Back edge
+
+        // Face 4: Top (y = 0.5)
+        -0.5f,  0.5f, -0.5f, -0.5f,  0.5f,  0.5f,  // Left edge
+        -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  // Front edge
+         0.5f,  0.5f,  0.5f,  0.5f,  0.5f, -0.5f,  // Right edge
+         0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  // Back edge
+
+        // Face 5: Bottom (y = -0.5)
+        -0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  0.5f,  // Left edge
+        -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  // Front edge
+         0.5f, -0.5f,  0.5f,  0.5f, -0.5f, -0.5f,  // Right edge
+         0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  // Back edge
+    };
+
+    glGenVertexArrays(1, &m_edgeVAO);
+    glGenBuffers(1, &m_edgeVBO);
+
+    glBindVertexArray(m_edgeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_edgeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(edgeVertices), edgeVertices, GL_STATIC_DRAW);
+
+    // Position attribute only (no color)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+}
+
 // Render the scene with current camera parameters
 void GLCanvas::Render() {
     if (!m_glInitialized) return;
@@ -258,10 +321,37 @@ void GLCanvas::Render() {
     glm::mat4 mvp = projection * view * model;
     glUniformMatrix4fv(m_mvpLocation, 1, GL_FALSE, &mvp[0][0]);
 
+    // Disable color override for normal cube rendering
+    glUniform4f(m_colorLocation, 0.0f, 0.0f, 0.0f, 0.0f);
+
     // Draw the cube
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
+
+    // Draw highlighted edges for selected faces
+    if (!m_selectedFaces.empty()) {
+        glLineWidth(3.0f);
+
+        // Disable vertex color attribute since edges don't have color data
+        glDisableVertexAttribArray(1);
+
+        glBindVertexArray(m_edgeVAO);
+
+        // Use a bright yellow color for highlighting
+        glUniform4f(m_colorLocation, 1.0f, 1.0f, 0.0f, 1.0f);
+
+        for (int faceIdx : m_selectedFaces) {
+            // Each face has 4 edges, 2 vertices per edge = 8 vertices
+            glDrawArrays(GL_LINES, faceIdx * 8, 8);
+        }
+
+        glBindVertexArray(0);
+
+        // Re-enable vertex color attribute for normal rendering
+        glEnableVertexAttribArray(1);
+        glLineWidth(1.0f);
+    }
 
     SwapBuffers();
 }
@@ -316,6 +406,7 @@ void GLCanvas::OnMouseMove(wxMouseEvent& event) {
 // Mouse button down: begin rotate (left) or pan (right)
 void GLCanvas::OnMouseDown(wxMouseEvent& event) {
     m_lastMousePos = event.GetPosition();
+    m_mouseDownPos = event.GetPosition();
 
     if (event.LeftDown()) {
         m_isRotating = true;
@@ -325,12 +416,45 @@ void GLCanvas::OnMouseDown(wxMouseEvent& event) {
     }
 }
 
-// Mouse button up: end rotate or pan
-void GLCanvas::OnMouseUp(wxMouseEvent& event) {
-    if (event.LeftUp()) {
-        m_isRotating = false;
+// Left mouse button up: handle face selection (if not dragging)
+void GLCanvas::OnLeftClick(wxMouseEvent& event) {
+    m_isRotating = false;
+
+    // Only process as click if mouse hasn't moved much (not a drag)
+    wxPoint currentPos = event.GetPosition();
+    int dx = abs(currentPos.x - m_mouseDownPos.x);
+    int dy = abs(currentPos.y - m_mouseDownPos.y);
+
+    if (dx < 5 && dy < 5) {  // Threshold for click vs drag
+        int faceIdx = PickFace(currentPos.x, currentPos.y);
+
+        std::cout << "Clicked at (" << currentPos.x << ", " << currentPos.y << "), face: " << faceIdx << std::endl;
+
+        if (faceIdx >= 0) {
+            if (event.ControlDown()) {
+                // CTRL held: toggle face in selection
+                if (m_selectedFaces.count(faceIdx)) {
+                    m_selectedFaces.erase(faceIdx);
+                    std::cout << "Deselected face " << faceIdx << std::endl;
+                } else {
+                    m_selectedFaces.insert(faceIdx);
+                    std::cout << "Added face " << faceIdx << " to selection" << std::endl;
+                }
+            } else {
+                // No CTRL: select only this face
+                m_selectedFaces.clear();
+                m_selectedFaces.insert(faceIdx);
+                std::cout << "Selected face " << faceIdx << std::endl;
+            }
+            std::cout << "Total selected faces: " << m_selectedFaces.size() << std::endl;
+            Refresh();
+        }
     }
-    else if (event.RightUp()) {
+}
+
+// Mouse button up: end pan
+void GLCanvas::OnMouseUp(wxMouseEvent& event) {
+    if (event.RightUp()) {
         m_isPanning = false;
     }
 }
@@ -369,4 +493,122 @@ void GLCanvas::ResetView() {
     m_pan = glm::vec2(0.0f, 0.0f);
     m_zoom = 5.0f;
     Refresh();
+}
+
+// Ray-triangle intersection using Möller-Trumbore algorithm
+bool GLCanvas::RayIntersectsTriangle(const glm::vec3& rayOrigin, const glm::vec3& rayDir,
+                                     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2,
+                                     float& t) {
+    const float EPSILON = 0.0000001f;
+    glm::vec3 edge1 = v1 - v0;
+    glm::vec3 edge2 = v2 - v0;
+    glm::vec3 h = glm::cross(rayDir, edge2);
+    float a = glm::dot(edge1, h);
+
+    if (a > -EPSILON && a < EPSILON)
+        return false;  // Ray is parallel to triangle
+
+    float f = 1.0f / a;
+    glm::vec3 s = rayOrigin - v0;
+    float u = f * glm::dot(s, h);
+
+    if (u < 0.0f || u > 1.0f)
+        return false;
+
+    glm::vec3 q = glm::cross(s, edge1);
+    float v = f * glm::dot(rayDir, q);
+
+    if (v < 0.0f || u + v > 1.0f)
+        return false;
+
+    t = f * glm::dot(edge2, q);
+    return t > EPSILON;
+}
+
+// Convert screen coordinates to world-space ray
+glm::vec3 GLCanvas::ScreenToWorldRay(int mouseX, int mouseY) {
+    wxSize size = GetSize();
+    float aspect = (float)size.x / (float)size.y;
+
+    // Convert to normalized device coordinates
+    float x = (2.0f * mouseX) / size.x - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / size.y;
+
+    // Build inverse of view-projection matrix (NOT including model matrix)
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(m_pan.x, m_pan.y, -m_zoom));
+
+    glm::mat4 invVP = glm::inverse(projection * view);
+
+    // Transform near and far points from clip space to world space
+    glm::vec4 rayStart = invVP * glm::vec4(x, y, -1.0f, 1.0f);
+    glm::vec4 rayEnd = invVP * glm::vec4(x, y, 1.0f, 1.0f);
+
+    rayStart /= rayStart.w;  // Perspective divide
+    rayEnd /= rayEnd.w;
+
+    return glm::normalize(glm::vec3(rayEnd - rayStart));
+}
+
+// Pick a face based on mouse coordinates using ray casting
+int GLCanvas::PickFace(int mouseX, int mouseY) {
+    // Get camera position in view space (before rotation)
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(m_pan.x, m_pan.y, -m_zoom));
+    glm::vec3 cameraPos = glm::vec3(glm::inverse(view) * glm::vec4(0, 0, 0, 1));
+
+    glm::vec3 rayDir = ScreenToWorldRay(mouseX, mouseY);
+
+    std::cout << "Camera pos: (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << std::endl;
+    std::cout << "Ray dir: (" << rayDir.x << ", " << rayDir.y << ", " << rayDir.z << ")" << std::endl;
+
+    // Define cube face vertices (matching the order in CreateCube)
+    glm::vec3 faceVertices[6][6] = {
+        // Face 0: Front (red)
+        { glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec3( 0.5f,  0.5f,  0.5f),
+          glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec3(-0.5f,  0.5f,  0.5f) },
+        // Face 1: Back (green)
+        { glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec3( 0.5f, -0.5f, -0.5f),
+          glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec3( 0.5f,  0.5f, -0.5f) },
+        // Face 2: Left (blue)
+        { glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec3(-0.5f,  0.5f,  0.5f),
+          glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec3(-0.5f,  0.5f, -0.5f) },
+        // Face 3: Right (yellow)
+        { glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec3( 0.5f, -0.5f,  0.5f),
+          glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec3( 0.5f,  0.5f,  0.5f) },
+        // Face 4: Top (cyan)
+        { glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec3( 0.5f,  0.5f,  0.5f),
+          glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec3( 0.5f,  0.5f, -0.5f) },
+        // Face 5: Bottom (magenta)
+        { glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec3(-0.5f, -0.5f,  0.5f),
+          glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec3( 0.5f, -0.5f,  0.5f) }
+    };
+
+    // Apply model transformation to vertices
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::rotate(model, m_rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, m_rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, m_rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    // Find closest intersected face
+    float closestDist = std::numeric_limits<float>::max();
+    int closestFace = -1;
+
+    for (int face = 0; face < 6; face++) {
+        for (int tri = 0; tri < 2; tri++) {
+            int idx = tri * 3;
+            glm::vec3 v0 = glm::vec3(model * glm::vec4(faceVertices[face][idx + 0], 1.0f));
+            glm::vec3 v1 = glm::vec3(model * glm::vec4(faceVertices[face][idx + 1], 1.0f));
+            glm::vec3 v2 = glm::vec3(model * glm::vec4(faceVertices[face][idx + 2], 1.0f));
+
+            float t;
+            if (RayIntersectsTriangle(cameraPos, rayDir, v0, v1, v2, t)) {
+                if (t < closestDist) {
+                    closestDist = t;
+                    closestFace = face;
+                }
+            }
+        }
+    }
+
+    return closestFace;
 }
