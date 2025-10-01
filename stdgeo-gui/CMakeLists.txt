@@ -14,6 +14,10 @@ endif()
 # Set build type options
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 
+# Export compile commands for IDE integration
+# This command removes the squiggly red underlines in VS Code
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Compiler flags for different build types
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
