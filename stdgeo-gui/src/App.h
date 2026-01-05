@@ -1,9 +1,13 @@
-// wxWidgets application entry point
 #pragma once
+
+#include "CommonHeader.h"
 
 #include <wx/wx.h>
 
-class App : public wxApp {
+
+class App : public wxApp
+{
 public:
     virtual bool OnInit() override;  // Called on application startup
 };
+

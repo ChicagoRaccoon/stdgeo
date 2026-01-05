@@ -1,4 +1,7 @@
 // MainFrame implementation: creates dockable window with GL canvas, text pane, and toolbar
+
+#include "CommonHeader.h"
+
 #include "MainFrame.h"
 #include <wx/artprov.h>
 #include <vector>
@@ -30,19 +33,14 @@ MainFrame::MainFrame(const wxString& title)
     m_auiManager.SetManagedWindow(this);
 
     // Create toolbar with view preset buttons
-    m_toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                              wxTB_FLAT | wxTB_NODIVIDER);
-    m_toolBar->AddTool(ID_VIEW_FRONT, "Front", wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_TOOLBAR),
-                       "View from front");
-    m_toolBar->AddTool(ID_VIEW_TOP, "Top", wxArtProvider::GetBitmap(wxART_GO_UP, wxART_TOOLBAR),
-                       "View from top");
-    m_toolBar->AddTool(ID_VIEW_SIDE, "Side", wxArtProvider::GetBitmap(wxART_GO_BACK, wxART_TOOLBAR),
-                       "View from side");
-    m_toolBar->AddTool(ID_VIEW_ISOMETRIC, "Iso", wxArtProvider::GetBitmap(wxART_CROSS_MARK, wxART_TOOLBAR),
-                       "Isometric view");
+    m_toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
+
+    m_toolBar->AddTool(ID_VIEW_FRONT    , "Front", wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_TOOLBAR), "View from front");
+    m_toolBar->AddTool(ID_VIEW_TOP      , "Top"  , wxArtProvider::GetBitmap(wxART_GO_UP     , wxART_TOOLBAR), "View from top"  );
+    m_toolBar->AddTool(ID_VIEW_SIDE     , "Side" , wxArtProvider::GetBitmap(wxART_GO_BACK   , wxART_TOOLBAR), "View from side" );
+    m_toolBar->AddTool(ID_VIEW_ISOMETRIC, "Iso"  , wxArtProvider::GetBitmap(wxART_CROSS_MARK, wxART_TOOLBAR), "Isometric view" );
     m_toolBar->AddSeparator();
-    m_toolBar->AddTool(ID_VIEW_RESET, "Reset", wxArtProvider::GetBitmap(wxART_UNDO, wxART_TOOLBAR),
-                       "Reset view");
+    m_toolBar->AddTool(ID_VIEW_RESET    , "Reset", wxArtProvider::GetBitmap(wxART_UNDO      , wxART_TOOLBAR), "Reset view"     );
     m_toolBar->Realize();
 
     // Configure OpenGL context attributes (RGBA, double buffer, 16-bit depth)

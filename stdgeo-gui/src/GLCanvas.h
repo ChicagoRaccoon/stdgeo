@@ -2,6 +2,8 @@
 // Provides pan, zoom, and rotate controls via mouse input
 #pragma once
 
+#include "CommonHeader.h"
+
 #include <GL/glew.h>  // Must be included before other GL headers
 #include <wx/wx.h>
 #include <wx/glcanvas.h>

@@ -1,4 +1,12 @@
-// Implementation of OpenGL canvas with interactive 3D cube
+
+/**
+ * THEORY OF OPERATION
+ * 
+ * This module provides the implementation of an OpenGL canvas with interactive 3D cube.
+ */
+
+#include "CommonHeader.h"
+
 #include "GLCanvas.h"
 #include <fstream>
 #include <sstream>

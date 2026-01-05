@@ -1,11 +1,14 @@
 // Main application window with dockable panels: OpenGL canvas, text output, and toolbar
 #pragma once
 
+#include "CommonHeader.h"
+
 #include <wx/wx.h>
 #include <wx/aui/aui.h>
 #include "GLCanvas.h"
 
-class MainFrame : public wxFrame {
+class MainFrame : public wxFrame
+{
 public:
     MainFrame(const wxString& title);
     ~MainFrame();
