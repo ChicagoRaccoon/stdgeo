@@ -1,4 +1,13 @@
-// MainFrame implementation: creates dockable window with GL canvas, text pane, and toolbar
+
+/**
+ * THEORY OF OPERATION
+ * 
+ * MainFrame implementation.
+ * Creates a dockable window with:
+ *   - GL Canvas
+ *   - Text Pane
+ *   - Toolbar
+ */
 
 #include "CommonHeader.h"
 
@@ -17,12 +26,14 @@ enum {
 };
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-    EVT_TOOL(ID_VIEW_FRONT, MainFrame::OnViewFront)
-    EVT_TOOL(ID_VIEW_TOP, MainFrame::OnViewTop)
-    EVT_TOOL(ID_VIEW_SIDE, MainFrame::OnViewSide)
+    EVT_TOOL(ID_VIEW_FRONT    , MainFrame::OnViewFront    )
+    EVT_TOOL(ID_VIEW_TOP      , MainFrame::OnViewTop      )
+    EVT_TOOL(ID_VIEW_SIDE     , MainFrame::OnViewSide     )
     EVT_TOOL(ID_VIEW_ISOMETRIC, MainFrame::OnViewIsometric)
-    EVT_TOOL(ID_VIEW_RESET, MainFrame::OnResetView)
+    EVT_TOOL(ID_VIEW_RESET    , MainFrame::OnResetView    )
 wxEND_EVENT_TABLE()
+
+
 
 MainFrame::MainFrame(const wxString& title)
     : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(1200, 800)),
@@ -33,36 +44,36 @@ MainFrame::MainFrame(const wxString& title)
     m_auiManager.SetManagedWindow(this);
 
     // Create toolbar with view preset buttons
-    m_toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
+    m_pToolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
 
-    m_toolBar->AddTool(ID_VIEW_FRONT    , "Front", wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_TOOLBAR), "View from front");
-    m_toolBar->AddTool(ID_VIEW_TOP      , "Top"  , wxArtProvider::GetBitmap(wxART_GO_UP     , wxART_TOOLBAR), "View from top"  );
-    m_toolBar->AddTool(ID_VIEW_SIDE     , "Side" , wxArtProvider::GetBitmap(wxART_GO_BACK   , wxART_TOOLBAR), "View from side" );
-    m_toolBar->AddTool(ID_VIEW_ISOMETRIC, "Iso"  , wxArtProvider::GetBitmap(wxART_CROSS_MARK, wxART_TOOLBAR), "Isometric view" );
-    m_toolBar->AddSeparator();
-    m_toolBar->AddTool(ID_VIEW_RESET    , "Reset", wxArtProvider::GetBitmap(wxART_UNDO      , wxART_TOOLBAR), "Reset view"     );
-    m_toolBar->Realize();
+    m_pToolBar->AddTool(ID_VIEW_FRONT    , "Front", wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_TOOLBAR), "View from front");
+    m_pToolBar->AddTool(ID_VIEW_TOP      , "Top"  , wxArtProvider::GetBitmap(wxART_GO_UP     , wxART_TOOLBAR), "View from top"  );
+    m_pToolBar->AddTool(ID_VIEW_SIDE     , "Side" , wxArtProvider::GetBitmap(wxART_GO_BACK   , wxART_TOOLBAR), "View from side" );
+    m_pToolBar->AddTool(ID_VIEW_ISOMETRIC, "Iso"  , wxArtProvider::GetBitmap(wxART_CROSS_MARK, wxART_TOOLBAR), "Isometric view" );
+    m_pToolBar->AddSeparator();
+    m_pToolBar->AddTool(ID_VIEW_RESET    , "Reset", wxArtProvider::GetBitmap(wxART_UNDO      , wxART_TOOLBAR), "Reset view"     );
+    m_pToolBar->Realize();
 
     // Configure OpenGL context attributes (RGBA, double buffer, 16-bit depth)
     wxGLAttributes canvasAttrs;
     canvasAttrs.PlatformDefaults().RGBA().DoubleBuffer().Depth(16).EndList();
 
     // Create OpenGL rendering canvas
-    m_glCanvas = new GLCanvas(this, canvasAttrs);
+    m_pGlCanvas = new GLCanvas(this, canvasAttrs);
 
     // Create terminal-style text control
-    m_terminal = new wxTextCtrl(this, ID_TERMINAL, "",
+    m_pTerminal = new wxTextCtrl(this, ID_TERMINAL, "",
                                 wxDefaultPosition, wxDefaultSize,
                                 wxTE_MULTILINE | wxTE_RICH2 | wxTE_PROCESS_TAB);
 
     // Use monospace font for terminal feel
     wxFont terminalFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
-    m_terminal->SetFont(terminalFont);
-    m_terminal->SetBackgroundColour(wxColour(0, 0, 0));
-    m_terminal->SetForegroundColour(wxColour(0, 255, 0));
+    m_pTerminal->SetFont(terminalFont);
+    m_pTerminal->SetBackgroundColour(wxColour(0, 0, 0));
+    m_pTerminal->SetForegroundColour(wxColour(0, 255, 0));
 
     // Bind key events for terminal behavior
-    m_terminal->Bind(wxEVT_CHAR, &MainFrame::OnTerminalChar, this);
+    m_pTerminal->Bind(wxEVT_CHAR, &MainFrame::OnTerminalChar, this);
 
     // Print welcome message
     AppendOutput("=== StdGeo Terminal ===\n");
@@ -71,7 +82,7 @@ MainFrame::MainFrame(const wxString& title)
     ShowPrompt();
 
     // Add toolbar as a dockable pane (top, floatable)
-    m_auiManager.AddPane(m_toolBar, wxAuiPaneInfo()
+    m_auiManager.AddPane(m_pToolBar, wxAuiPaneInfo()
                         .Name("toolbar")
                         .Caption("View Controls")
                         .ToolbarPane()
@@ -80,7 +91,7 @@ MainFrame::MainFrame(const wxString& title)
                         .Gripper());
 
     // Add GL canvas as central pane (fills remaining space, floatable)
-    m_auiManager.AddPane(m_glCanvas, wxAuiPaneInfo()
+    m_auiManager.AddPane(m_pGlCanvas, wxAuiPaneInfo()
                         .Name("canvas")
                         .Caption("3D Viewport")
                         .Center()
@@ -89,7 +100,7 @@ MainFrame::MainFrame(const wxString& title)
                         .MaximizeButton());
 
     // Add terminal as dockable pane (right side, floatable)
-    m_auiManager.AddPane(m_terminal, wxAuiPaneInfo()
+    m_auiManager.AddPane(m_pTerminal, wxAuiPaneInfo()
                         .Name("terminal")
                         .Caption("Terminal")
                         .Right()
@@ -114,66 +125,66 @@ MainFrame::~MainFrame() {
 
 // Append text to terminal output
 void MainFrame::AppendOutput(const wxString& text) {
-    m_terminal->SetInsertionPointEnd();
-    m_terminal->WriteText(text + "\n");
+    m_pTerminal->SetInsertionPointEnd();
+    m_pTerminal->WriteText(text + "\n");
 }
 
 // Show command prompt at end of terminal
 void MainFrame::ShowPrompt() {
-    m_terminal->SetInsertionPointEnd();
-    m_terminal->WriteText("> ");
-    m_promptPos = m_terminal->GetInsertionPoint();
-    m_terminal->SetInsertionPointEnd();
-    m_terminal->SetFocus();
+    m_pTerminal->SetInsertionPointEnd();
+    m_pTerminal->WriteText("> ");
+    m_promptPos = m_pTerminal->GetInsertionPoint();
+    m_pTerminal->SetInsertionPointEnd();
+    m_pTerminal->SetFocus();
 }
 
 // Get text from current input line
 wxString MainFrame::GetCurrentLine() {
-    long lastPos = m_terminal->GetLastPosition();
-    return m_terminal->GetRange(m_promptPos, lastPos);
+    long lastPos = m_pTerminal->GetLastPosition();
+    return m_pTerminal->GetRange(m_promptPos, lastPos);
 }
 
 // Clear current input line
 void MainFrame::ClearCurrentLine() {
-    long lastPos = m_terminal->GetLastPosition();
-    m_terminal->Remove(m_promptPos, lastPos);
+    long lastPos = m_pTerminal->GetLastPosition();
+    m_pTerminal->Remove(m_promptPos, lastPos);
 }
 
 // Restrict editing to only the current input line
 void MainFrame::RestrictEditableArea() {
-    long insertPos = m_terminal->GetInsertionPoint();
+    long insertPos = m_pTerminal->GetInsertionPoint();
     if (insertPos < m_promptPos) {
-        m_terminal->SetInsertionPointEnd();
+        m_pTerminal->SetInsertionPointEnd();
     }
 }
 
 // Toolbar button handlers
 void MainFrame::OnViewFront(wxCommandEvent& event) {
-    m_glCanvas->SetViewFront();
+    m_pGlCanvas->SetViewFront();
     AppendOutput("View: Front (rotation reset, facing +Z)");
     ShowPrompt();
 }
 
 void MainFrame::OnViewTop(wxCommandEvent& event) {
-    m_glCanvas->SetViewTop();
+    m_pGlCanvas->SetViewTop();
     AppendOutput("View: Top (looking down -Y axis)");
     ShowPrompt();
 }
 
 void MainFrame::OnViewSide(wxCommandEvent& event) {
-    m_glCanvas->SetViewSide();
+    m_pGlCanvas->SetViewSide();
     AppendOutput("View: Side (looking from +X axis)");
     ShowPrompt();
 }
 
 void MainFrame::OnViewIsometric(wxCommandEvent& event) {
-    m_glCanvas->SetViewIsometric();
+    m_pGlCanvas->SetViewIsometric();
     AppendOutput("View: Isometric (45° rotation on X and Y)");
     ShowPrompt();
 }
 
 void MainFrame::OnResetView(wxCommandEvent& event) {
-    m_glCanvas->ResetView();
+    m_pGlCanvas->ResetView();
     AppendOutput("View: Reset to default position");
     ShowPrompt();
 }
@@ -188,7 +199,7 @@ void MainFrame::OnTerminalChar(wxKeyEvent& event) {
         // Execute command on Enter
         wxString command = GetCurrentLine().Trim().Lower();
 
-        m_terminal->WriteText("\n");
+        m_pTerminal->WriteText("\n");
 
         if (!command.IsEmpty()) {
             // Add to history
@@ -206,7 +217,7 @@ void MainFrame::OnTerminalChar(wxKeyEvent& event) {
         if (m_historyIndex > 0 && !m_history.empty()) {
             m_historyIndex--;
             ClearCurrentLine();
-            m_terminal->WriteText(m_history[m_historyIndex]);
+            m_pTerminal->WriteText(m_history[m_historyIndex]);
         }
     }
     else if (keyCode == WXK_DOWN) {
@@ -214,7 +225,7 @@ void MainFrame::OnTerminalChar(wxKeyEvent& event) {
         if (!m_history.empty() && m_historyIndex < (int)m_history.size() - 1) {
             m_historyIndex++;
             ClearCurrentLine();
-            m_terminal->WriteText(m_history[m_historyIndex]);
+            m_pTerminal->WriteText(m_history[m_historyIndex]);
         }
         else if (m_historyIndex == (int)m_history.size() - 1) {
             m_historyIndex = m_history.size();
@@ -223,21 +234,21 @@ void MainFrame::OnTerminalChar(wxKeyEvent& event) {
     }
     else if (keyCode == WXK_BACK) {
         // Prevent backspace before prompt
-        if (m_terminal->GetInsertionPoint() <= m_promptPos) {
+        if (m_pTerminal->GetInsertionPoint() <= m_promptPos) {
             return;  // Don't process
         }
         event.Skip();
     }
     else if (keyCode == WXK_LEFT) {
         // Prevent moving cursor before prompt
-        if (m_terminal->GetInsertionPoint() <= m_promptPos) {
+        if (m_pTerminal->GetInsertionPoint() <= m_promptPos) {
             return;
         }
         event.Skip();
     }
     else if (keyCode == WXK_HOME) {
         // Home goes to start of input line
-        m_terminal->SetInsertionPoint(m_promptPos);
+        m_pTerminal->SetInsertionPoint(m_promptPos);
     }
     else {
         // Allow other keys
@@ -248,23 +259,23 @@ void MainFrame::OnTerminalChar(wxKeyEvent& event) {
 // Command execution
 void MainFrame::ExecuteCommand(const wxString& command) {
     if (command == "front") {
-        m_glCanvas->SetViewFront();
+        m_pGlCanvas->SetViewFront();
         AppendOutput("View: Front (rotation reset, facing +Z)");
     }
     else if (command == "top") {
-        m_glCanvas->SetViewTop();
+        m_pGlCanvas->SetViewTop();
         AppendOutput("View: Top (looking down -Y axis)");
     }
     else if (command == "side") {
-        m_glCanvas->SetViewSide();
+        m_pGlCanvas->SetViewSide();
         AppendOutput("View: Side (looking from +X axis)");
     }
     else if (command == "iso" || command == "isometric") {
-        m_glCanvas->SetViewIsometric();
+        m_pGlCanvas->SetViewIsometric();
         AppendOutput("View: Isometric (45° rotation on X and Y)");
     }
     else if (command == "reset") {
-        m_glCanvas->ResetView();
+        m_pGlCanvas->ResetView();
         AppendOutput("View: Reset to default position");
     }
     else if (command == "help") {
