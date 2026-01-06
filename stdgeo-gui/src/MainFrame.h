@@ -7,6 +7,7 @@
 #include <wx/aui/aui.h>
 #include "GLCanvas.h"
 #include "Terminal.h"
+#include "Toolbar.h"
 
 class MainFrame : public wxFrame
 {
@@ -16,20 +17,12 @@ public:
 
 
 private:
-    // Event handlers for toolbar buttons
-    void  OnViewFront      (wxCommandEvent& event);
-    void  OnViewTop        (wxCommandEvent& event);
-    void  OnViewSide       (wxCommandEvent& event);
-    void  OnViewIsometric  (wxCommandEvent& event);
-    void  OnResetView      (wxCommandEvent& event);
-
-
 
     // UI components
     wxAuiManager  m_auiManager;  // Manages dockable panes
     GLCanvas*     m_pGlCanvas;   // 3D rendering viewport
     Terminal*     m_pTerminal;   // Terminal-style text control
-    wxToolBar*    m_pToolBar;    // View control toolbar
+    Toolbar*      m_pToolBar;    // View control toolbar
 
 
 

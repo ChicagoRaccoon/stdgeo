@@ -5,13 +5,8 @@
 #include "CommonHeader.h"
 
 
-#include <GL/glew.h>  // Must be included before other GL headers
+#include <GL/glew.h>  // Must be included before other GL headers. Not sure if this is necessary in this file.
 #include <wx/wx.h>
-#include <wx/aui/aui.h>
-#include <wx/glcanvas.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <set>
 #include "GLCanvas.h"
 
 class Terminal : public wxTextCtrl

@@ -55,6 +55,7 @@ set(SOURCES
     src/MainFrame.cpp
     src/GLCanvas.cpp
     src/Terminal.cpp
+    src/Toolbar.cpp
 )
 
 # Headers
@@ -64,6 +65,7 @@ set(HEADERS
     src/MainFrame.h
     src/GLCanvas.h
     src/Terminal.h
+    src/Toolbar.h
 )
 
 # Create executable
