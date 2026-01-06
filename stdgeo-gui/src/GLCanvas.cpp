@@ -16,7 +16,8 @@
 #include <wx/filename.h>
 
 // Get full path to shader file relative to executable directory
-static wxString GetShaderPath(const wxString& shaderFile) {
+static wxString GetShaderPath(const wxString& shaderFile)
+{
     wxFileName exePath(wxStandardPaths::Get().GetExecutablePath());
     wxString shaderPath = exePath.GetPath() + "/shaders/" + shaderFile;
 
@@ -30,14 +31,14 @@ static wxString GetShaderPath(const wxString& shaderFile) {
 
 // Event table: maps wxWidgets events to handler methods
 wxBEGIN_EVENT_TABLE(GLCanvas, wxGLCanvas)
-    EVT_PAINT(GLCanvas::OnPaint)
-    EVT_SIZE(GLCanvas::OnSize)
-    EVT_MOUSEWHEEL(GLCanvas::OnMouseWheel)
-    EVT_MOTION(GLCanvas::OnMouseMove)
-    EVT_LEFT_DOWN(GLCanvas::OnMouseDown)
-    EVT_LEFT_UP(GLCanvas::OnLeftClick)
-    EVT_RIGHT_DOWN(GLCanvas::OnMouseDown)
-    EVT_RIGHT_UP(GLCanvas::OnMouseUp)
+    EVT_PAINT     ( GLCanvas::OnPaint      )
+    EVT_SIZE      ( GLCanvas::OnSize       )
+    EVT_MOUSEWHEEL( GLCanvas::OnMouseWheel )
+    EVT_MOTION    ( GLCanvas::OnMouseMove  )
+    EVT_LEFT_DOWN ( GLCanvas::OnMouseDown  )
+    EVT_LEFT_UP   ( GLCanvas::OnLeftClick  )
+    EVT_RIGHT_DOWN( GLCanvas::OnMouseDown  )
+    EVT_RIGHT_UP  ( GLCanvas::OnMouseUp    )
 wxEND_EVENT_TABLE()
 
 GLCanvas::GLCanvas(wxWindow* parent, const wxGLAttributes& canvasAttrs)
@@ -58,26 +59,32 @@ GLCanvas::GLCanvas(wxWindow* parent, const wxGLAttributes& canvasAttrs)
     m_context = new wxGLContext(this);
 }
 
-GLCanvas::~GLCanvas() {
-    if (m_context) {
+GLCanvas::~GLCanvas() 
+{
+    if (m_context) 
+    {
         SetCurrent(*m_context);
-        if (m_VAO) glDeleteVertexArrays(1, &m_VAO);
-        if (m_VBO) glDeleteBuffers(1, &m_VBO);
-        if (m_edgeVAO) glDeleteVertexArrays(1, &m_edgeVAO);
-        if (m_edgeVBO) glDeleteBuffers(1, &m_edgeVBO);
-        if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
+
+        if (m_VAO          )  glDeleteVertexArrays(1, &m_VAO);
+        if (m_VBO          )  glDeleteBuffers     (1, &m_VBO);
+        if (m_edgeVAO      )  glDeleteVertexArrays(1, &m_edgeVAO);
+        if (m_edgeVBO      )  glDeleteBuffers     (1, &m_edgeVBO);
+        if (m_shaderProgram)  glDeleteProgram     (m_shaderProgram);
+
         delete m_context;
     }
 }
 
 // Initialize OpenGL context, load extensions, and create rendering resources
-void GLCanvas::InitGL() {
+void GLCanvas::InitGL()
+{
     SetCurrent(*m_context);
 
     // Initialize GLEW to access modern OpenGL functions
     glewExperimental = GL_TRUE;
     GLenum err = glewInit();
-    if (err != GLEW_OK) {
+    if (err != GLEW_OK)
+    {
         std::cerr << "GLEW Init Error: " << glewGetErrorString(err) << std::endl;
         return;
     }
@@ -94,12 +101,14 @@ void GLCanvas::InitGL() {
 }
 
 // Load, compile, and link vertex and fragment shaders into a program
-GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
+GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath)
+{
     // Locate shader files
     wxString vertexFullPath = GetShaderPath(wxString(vertexPath));
     wxString fragmentFullPath = GetShaderPath(wxString(fragmentPath));
 
-    if (vertexFullPath.IsEmpty() || fragmentFullPath.IsEmpty()) {
+    if (vertexFullPath.IsEmpty() || fragmentFullPath.IsEmpty())
+    {
         std::cerr << "Failed to find shader files" << std::endl;
         return 0;
     }
@@ -108,7 +117,8 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
     std::ifstream vShaderFile(vertexFullPath.ToStdString());
     std::ifstream fShaderFile(fragmentFullPath.ToStdString());
 
-    if (!vShaderFile.is_open() || !fShaderFile.is_open()) {
+    if (!vShaderFile.is_open() || !fShaderFile.is_open())
+    {
         std::cerr << "Failed to open shader files" << std::endl;
         return 0;
     }
@@ -130,7 +140,8 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
 
     GLint success;
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
+    if (!success)
+    {
         char infoLog[512];
         glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
         std::cerr << "Vertex shader compilation failed:\n" << infoLog << std::endl;
@@ -142,7 +153,8 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
     glCompileShader(fragmentShader);
 
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
+    if (!success)
+    {
         char infoLog[512];
         glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
         std::cerr << "Fragment shader compilation failed:\n" << infoLog << std::endl;
@@ -155,7 +167,8 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
     glLinkProgram(shaderProgram);
 
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
+    if (!success)
+    {
         char infoLog[512];
         glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
         std::cerr << "Shader program linking failed:\n" << infoLog << std::endl;
@@ -168,9 +181,11 @@ GLuint GLCanvas::LoadShaders(const char* vertexPath, const char* fragmentPath) {
     return shaderProgram;
 }
 
-void GLCanvas::CreateShaderProgram() {
+void GLCanvas::CreateShaderProgram()
+{
     m_shaderProgram = LoadShaders("vertex.glsl", "fragment.glsl");
-    if (m_shaderProgram == 0) {
+    if (m_shaderProgram == 0)
+    {
         std::cerr << "Failed to create shader program" << std::endl;
         return;
     }
@@ -179,9 +194,11 @@ void GLCanvas::CreateShaderProgram() {
 }
 
 // Create colored cube geometry (6 faces, 2 triangles each, 36 vertices total)
-void GLCanvas::CreateCube() {
+void GLCanvas::CreateCube()
+{
     // Vertex data: position (x,y,z) + color (r,g,b)
-    float vertices[] = {
+    float vertices[] =
+    {
         // Front face (red)
         -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,
          0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,
@@ -251,10 +268,12 @@ void GLCanvas::CreateCube() {
 }
 
 // Create edge geometry for highlighting selected faces
-void GLCanvas::CreateEdgeBuffers() {
+void GLCanvas::CreateEdgeBuffers()
+{
     // Edge vertices for each face (4 edges per face, 2 vertices per edge)
     // Each face has edges defined as lines
-    float edgeVertices[] = {
+    float edgeVertices[] =
+    {
         // Face 0: Front (z = 0.5)
         -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  // Bottom edge
          0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  // Right edge
@@ -307,8 +326,12 @@ void GLCanvas::CreateEdgeBuffers() {
 }
 
 // Render the scene with current camera parameters
-void GLCanvas::Render() {
-    if (!m_glInitialized) return;
+void GLCanvas::Render()
+{
+    if (!m_glInitialized)
+    {
+        return;
+    }
 
     SetCurrent(*m_context);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -338,7 +361,8 @@ void GLCanvas::Render() {
     glBindVertexArray(0);
 
     // Draw highlighted edges for selected faces
-    if (!m_selectedFaces.empty()) {
+    if (!m_selectedFaces.empty())
+    {
         glLineWidth(3.0f);
 
         // Disable vertex color attribute since edges don't have color data
@@ -349,7 +373,8 @@ void GLCanvas::Render() {
         // Use a bright yellow color for highlighting
         glUniform4f(m_colorLocation, 1.0f, 1.0f, 0.0f, 1.0f);
 
-        for (int faceIdx : m_selectedFaces) {
+        for (int faceIdx : m_selectedFaces)
+        {
             // Each face has 4 edges, 2 vertices per edge = 8 vertices
             glDrawArrays(GL_LINES, faceIdx * 8, 8);
         }
@@ -364,18 +389,22 @@ void GLCanvas::Render() {
     SwapBuffers();
 }
 
-void GLCanvas::OnPaint(wxPaintEvent& event) {
+void GLCanvas::OnPaint(wxPaintEvent& event)
+{
     wxPaintDC dc(this);
 
-    if (!m_glInitialized) {
+    if (!m_glInitialized)
+    {
         InitGL();
     }
 
     Render();
 }
 
-void GLCanvas::OnSize(wxSizeEvent& event) {
-    if (m_glInitialized) {
+void GLCanvas::OnSize(wxSizeEvent& event)
+{
+    if (m_glInitialized)
+    {
         SetCurrent(*m_context);
         wxSize size = GetSize();
         glViewport(0, 0, size.x, size.y);
@@ -384,7 +413,8 @@ void GLCanvas::OnSize(wxSizeEvent& event) {
 }
 
 // Mouse wheel: zoom in/out (clamped between 1 and 20)
-void GLCanvas::OnMouseWheel(wxMouseEvent& event) {
+void GLCanvas::OnMouseWheel(wxMouseEvent& event)
+{
     float delta = event.GetWheelRotation() / 120.0f;
     m_zoom -= delta * 0.5f;
     m_zoom = std::max(1.0f, std::min(20.0f, m_zoom));
@@ -392,16 +422,19 @@ void GLCanvas::OnMouseWheel(wxMouseEvent& event) {
 }
 
 // Mouse move: rotate (left button) or pan (right button)
-void GLCanvas::OnMouseMove(wxMouseEvent& event) {
+void GLCanvas::OnMouseMove(wxMouseEvent& event)
+{
     wxPoint currentPos = event.GetPosition();
 
-    if (m_isRotating) {
+    if (m_isRotating)
+    {
         wxPoint delta = currentPos - m_lastMousePos;
         m_rotation.y += delta.x * 0.01f;
         m_rotation.x += delta.y * 0.01f;
         Refresh();
     }
-    else if (m_isPanning) {
+    else if (m_isPanning)
+    {
         wxPoint delta = currentPos - m_lastMousePos;
         m_pan.x += delta.x * 0.01f;
         m_pan.y -= delta.y * 0.01f;
@@ -412,20 +445,24 @@ void GLCanvas::OnMouseMove(wxMouseEvent& event) {
 }
 
 // Mouse button down: begin rotate (left) or pan (right)
-void GLCanvas::OnMouseDown(wxMouseEvent& event) {
+void GLCanvas::OnMouseDown(wxMouseEvent& event)
+{
     m_lastMousePos = event.GetPosition();
     m_mouseDownPos = event.GetPosition();
 
-    if (event.LeftDown()) {
+    if (event.LeftDown())
+    {
         m_isRotating = true;
     }
-    else if (event.RightDown()) {
+    else if (event.RightDown())
+    {
         m_isPanning = true;
     }
 }
 
 // Left mouse button up: handle face selection (if not dragging)
-void GLCanvas::OnLeftClick(wxMouseEvent& event) {
+void GLCanvas::OnLeftClick(wxMouseEvent& event)
+{
     m_isRotating = false;
 
     // Only process as click if mouse hasn't moved much (not a drag)
@@ -433,22 +470,32 @@ void GLCanvas::OnLeftClick(wxMouseEvent& event) {
     int dx = abs(currentPos.x - m_mouseDownPos.x);
     int dy = abs(currentPos.y - m_mouseDownPos.y);
 
-    if (dx < 5 && dy < 5) {  // Threshold for click vs drag
+    // Threshold for click vs drag
+    // TODO These should be pound-defines
+    if (dx < 5 && dy < 5)
+    {  
         int faceIdx = PickFace(currentPos.x, currentPos.y);
 
         std::cout << "Clicked at (" << currentPos.x << ", " << currentPos.y << "), face: " << faceIdx << std::endl;
 
-        if (faceIdx >= 0) {
-            if (event.ControlDown()) {
+        if (faceIdx >= 0)
+        {
+            if (event.ControlDown())
+            {
                 // CTRL held: toggle face in selection
-                if (m_selectedFaces.count(faceIdx)) {
+                if (m_selectedFaces.count(faceIdx))
+                {
                     m_selectedFaces.erase(faceIdx);
                     std::cout << "Deselected face " << faceIdx << std::endl;
-                } else {
+                }
+                else
+                {
                     m_selectedFaces.insert(faceIdx);
                     std::cout << "Added face " << faceIdx << " to selection" << std::endl;
                 }
-            } else {
+            }
+            else
+            {
                 // No CTRL: select only this face
                 m_selectedFaces.clear();
                 m_selectedFaces.insert(faceIdx);
@@ -461,42 +508,49 @@ void GLCanvas::OnLeftClick(wxMouseEvent& event) {
 }
 
 // Mouse button up: end pan
-void GLCanvas::OnMouseUp(wxMouseEvent& event) {
-    if (event.RightUp()) {
+void GLCanvas::OnMouseUp(wxMouseEvent& event)
+{
+    if (event.RightUp())
+    {
         m_isPanning = false;
     }
 }
 
 // View preset methods
-void GLCanvas::SetViewFront() {
+void GLCanvas::SetViewFront()
+{
     m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     m_pan = glm::vec2(0.0f, 0.0f);
     m_zoom = 5.0f;
     Refresh();
 }
 
-void GLCanvas::SetViewTop() {
+void GLCanvas::SetViewTop()
+{
     m_rotation = glm::vec3(-glm::half_pi<float>(), 0.0f, 0.0f);  // -90° on X axis
     m_pan = glm::vec2(0.0f, 0.0f);
     m_zoom = 5.0f;
     Refresh();
 }
 
-void GLCanvas::SetViewSide() {
+void GLCanvas::SetViewSide()
+{
     m_rotation = glm::vec3(0.0f, glm::half_pi<float>(), 0.0f);  // 90° on Y axis
     m_pan = glm::vec2(0.0f, 0.0f);
     m_zoom = 5.0f;
     Refresh();
 }
 
-void GLCanvas::SetViewIsometric() {
+void GLCanvas::SetViewIsometric()
+{
     m_rotation = glm::vec3(glm::radians(35.26f), glm::radians(45.0f), 0.0f);  // Standard isometric angles
     m_pan = glm::vec2(0.0f, 0.0f);
     m_zoom = 5.0f;
     Refresh();
 }
 
-void GLCanvas::ResetView() {
+void GLCanvas::ResetView()
+{
     m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     m_pan = glm::vec2(0.0f, 0.0f);
     m_zoom = 5.0f;
@@ -506,7 +560,8 @@ void GLCanvas::ResetView() {
 // Ray-triangle intersection using Möller-Trumbore algorithm
 bool GLCanvas::RayIntersectsTriangle(const glm::vec3& rayOrigin, const glm::vec3& rayDir,
                                      const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2,
-                                     float& t) {
+                                     float& t)
+{
     const float EPSILON = 0.0000001f;
     glm::vec3 edge1 = v1 - v0;
     glm::vec3 edge2 = v2 - v0;
@@ -514,27 +569,34 @@ bool GLCanvas::RayIntersectsTriangle(const glm::vec3& rayOrigin, const glm::vec3
     float a = glm::dot(edge1, h);
 
     if (a > -EPSILON && a < EPSILON)
+    {
         return false;  // Ray is parallel to triangle
+    }
 
     float f = 1.0f / a;
     glm::vec3 s = rayOrigin - v0;
     float u = f * glm::dot(s, h);
 
     if (u < 0.0f || u > 1.0f)
+    {
         return false;
+    }
 
     glm::vec3 q = glm::cross(s, edge1);
     float v = f * glm::dot(rayDir, q);
 
     if (v < 0.0f || u + v > 1.0f)
+    {
         return false;
+    }
 
     t = f * glm::dot(edge2, q);
     return t > EPSILON;
 }
 
 // Convert screen coordinates to world-space ray
-glm::vec3 GLCanvas::ScreenToWorldRay(int mouseX, int mouseY) {
+glm::vec3 GLCanvas::ScreenToWorldRay(int mouseX, int mouseY)
+{
     wxSize size = GetSize();
     float aspect = (float)size.x / (float)size.y;
 
@@ -570,7 +632,8 @@ int GLCanvas::PickFace(int mouseX, int mouseY) {
     std::cout << "Ray dir: (" << rayDir.x << ", " << rayDir.y << ", " << rayDir.z << ")" << std::endl;
 
     // Define cube face vertices (matching the order in CreateCube)
-    glm::vec3 faceVertices[6][6] = {
+    glm::vec3 faceVertices[6][6] =
+    {
         // Face 0: Front (red)
         { glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec3( 0.5f,  0.5f,  0.5f),
           glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec3(-0.5f,  0.5f,  0.5f) },
@@ -601,16 +664,20 @@ int GLCanvas::PickFace(int mouseX, int mouseY) {
     float closestDist = std::numeric_limits<float>::max();
     int closestFace = -1;
 
-    for (int face = 0; face < 6; face++) {
-        for (int tri = 0; tri < 2; tri++) {
+    for (int face = 0; face < 6; face++)
+    {
+        for (int tri = 0; tri < 2; tri++)
+        {
             int idx = tri * 3;
             glm::vec3 v0 = glm::vec3(model * glm::vec4(faceVertices[face][idx + 0], 1.0f));
             glm::vec3 v1 = glm::vec3(model * glm::vec4(faceVertices[face][idx + 1], 1.0f));
             glm::vec3 v2 = glm::vec3(model * glm::vec4(faceVertices[face][idx + 2], 1.0f));
 
             float t;
-            if (RayIntersectsTriangle(cameraPos, rayDir, v0, v1, v2, t)) {
-                if (t < closestDist) {
+            if (RayIntersectsTriangle(cameraPos, rayDir, v0, v1, v2, t))
+            {
+                if (t < closestDist)
+                {
                     closestDist = t;
                     closestFace = face;
                 }
@@ -620,3 +687,5 @@ int GLCanvas::PickFace(int mouseX, int mouseY) {
 
     return closestFace;
 }
+
+

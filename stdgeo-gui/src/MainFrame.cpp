@@ -16,7 +16,8 @@
 #include <vector>
 
 // Event IDs for toolbar buttons and controls
-enum {
+enum
+{
     ID_VIEW_FRONT = wxID_HIGHEST + 1,
     ID_VIEW_TOP,
     ID_VIEW_SIDE,
@@ -104,8 +105,8 @@ MainFrame::MainFrame(const wxString& title)
                         .Name("terminal")
                         .Caption("Terminal")
                         .Right()
-                        .BestSize(400, -1)
-                        .MinSize(250, -1)
+                        .BestSize(400, 50)
+                        .MinSize(250, 20)
                         .Floatable()
                         .CloseButton()
                         .MaximizeButton());
@@ -118,19 +119,22 @@ MainFrame::MainFrame(const wxString& title)
     SetStatusText("Ready - Left mouse: rotate | Right mouse: pan | Scroll: zoom | Drag panes to dock/undock");
 }
 
-MainFrame::~MainFrame() {
+MainFrame::~MainFrame()
+{
     // Clean up AUI manager
     m_auiManager.UnInit();
 }
 
 // Append text to terminal output
-void MainFrame::AppendOutput(const wxString& text) {
+void MainFrame::AppendOutput(const wxString& text)
+{
     m_pTerminal->SetInsertionPointEnd();
     m_pTerminal->WriteText(text + "\n");
 }
 
 // Show command prompt at end of terminal
-void MainFrame::ShowPrompt() {
+void MainFrame::ShowPrompt()
+{
     m_pTerminal->SetInsertionPointEnd();
     m_pTerminal->WriteText("> ");
     m_promptPos = m_pTerminal->GetInsertionPoint();
@@ -139,19 +143,22 @@ void MainFrame::ShowPrompt() {
 }
 
 // Get text from current input line
-wxString MainFrame::GetCurrentLine() {
+wxString MainFrame::GetCurrentLine() 
+{
     long lastPos = m_pTerminal->GetLastPosition();
     return m_pTerminal->GetRange(m_promptPos, lastPos);
 }
 
 // Clear current input line
-void MainFrame::ClearCurrentLine() {
+void MainFrame::ClearCurrentLine()
+{
     long lastPos = m_pTerminal->GetLastPosition();
     m_pTerminal->Remove(m_promptPos, lastPos);
 }
 
 // Restrict editing to only the current input line
-void MainFrame::RestrictEditableArea() {
+void MainFrame::RestrictEditableArea()
+{
     long insertPos = m_pTerminal->GetInsertionPoint();
     if (insertPos < m_promptPos) {
         m_pTerminal->SetInsertionPointEnd();
@@ -159,49 +166,57 @@ void MainFrame::RestrictEditableArea() {
 }
 
 // Toolbar button handlers
-void MainFrame::OnViewFront(wxCommandEvent& event) {
+void MainFrame::OnViewFront(wxCommandEvent& event)
+{
     m_pGlCanvas->SetViewFront();
     AppendOutput("View: Front (rotation reset, facing +Z)");
     ShowPrompt();
 }
 
-void MainFrame::OnViewTop(wxCommandEvent& event) {
+void MainFrame::OnViewTop(wxCommandEvent& event)
+{
     m_pGlCanvas->SetViewTop();
     AppendOutput("View: Top (looking down -Y axis)");
     ShowPrompt();
 }
 
-void MainFrame::OnViewSide(wxCommandEvent& event) {
+void MainFrame::OnViewSide(wxCommandEvent& event)
+{
     m_pGlCanvas->SetViewSide();
     AppendOutput("View: Side (looking from +X axis)");
     ShowPrompt();
 }
 
-void MainFrame::OnViewIsometric(wxCommandEvent& event) {
+void MainFrame::OnViewIsometric(wxCommandEvent& event)
+{
     m_pGlCanvas->SetViewIsometric();
     AppendOutput("View: Isometric (45° rotation on X and Y)");
     ShowPrompt();
 }
 
-void MainFrame::OnResetView(wxCommandEvent& event) {
+void MainFrame::OnResetView(wxCommandEvent& event)
+{
     m_pGlCanvas->ResetView();
     AppendOutput("View: Reset to default position");
     ShowPrompt();
 }
 
 // Terminal key event handler
-void MainFrame::OnTerminalChar(wxKeyEvent& event) {
+void MainFrame::OnTerminalChar(wxKeyEvent& event)
+{
     int keyCode = event.GetKeyCode();
 
     RestrictEditableArea();
 
-    if (keyCode == WXK_RETURN || keyCode == WXK_NUMPAD_ENTER) {
+    if (keyCode == WXK_RETURN || keyCode == WXK_NUMPAD_ENTER)
+    {
         // Execute command on Enter
         wxString command = GetCurrentLine().Trim().Lower();
 
         m_pTerminal->WriteText("\n");
 
-        if (!command.IsEmpty()) {
+        if (!command.IsEmpty())
+        {
             // Add to history
             m_history.push_back(command);
             m_historyIndex = m_history.size();
@@ -212,73 +227,91 @@ void MainFrame::OnTerminalChar(wxKeyEvent& event) {
 
         ShowPrompt();
     }
-    else if (keyCode == WXK_UP) {
+    else if (keyCode == WXK_UP)
+    {
         // Navigate history backward
-        if (m_historyIndex > 0 && !m_history.empty()) {
+        if (m_historyIndex > 0 && !m_history.empty())
+        {
             m_historyIndex--;
             ClearCurrentLine();
             m_pTerminal->WriteText(m_history[m_historyIndex]);
         }
     }
-    else if (keyCode == WXK_DOWN) {
+    else if (keyCode == WXK_DOWN)
+    {
         // Navigate history forward
-        if (!m_history.empty() && m_historyIndex < (int)m_history.size() - 1) {
+        if (!m_history.empty() && m_historyIndex < (int)m_history.size() - 1)
+        {
             m_historyIndex++;
             ClearCurrentLine();
             m_pTerminal->WriteText(m_history[m_historyIndex]);
         }
-        else if (m_historyIndex == (int)m_history.size() - 1) {
+        else if (m_historyIndex == (int)m_history.size() - 1)
+        {
             m_historyIndex = m_history.size();
             ClearCurrentLine();
         }
     }
-    else if (keyCode == WXK_BACK) {
+    else if (keyCode == WXK_BACK)
+    {
         // Prevent backspace before prompt
-        if (m_pTerminal->GetInsertionPoint() <= m_promptPos) {
+        if (m_pTerminal->GetInsertionPoint() <= m_promptPos)
+        {
             return;  // Don't process
         }
         event.Skip();
     }
-    else if (keyCode == WXK_LEFT) {
+    else if (keyCode == WXK_LEFT)
+    {
         // Prevent moving cursor before prompt
-        if (m_pTerminal->GetInsertionPoint() <= m_promptPos) {
+        if (m_pTerminal->GetInsertionPoint() <= m_promptPos)
+        {
             return;
         }
         event.Skip();
     }
-    else if (keyCode == WXK_HOME) {
+    else if (keyCode == WXK_HOME)
+    {
         // Home goes to start of input line
         m_pTerminal->SetInsertionPoint(m_promptPos);
     }
-    else {
+    else
+    {
         // Allow other keys
         event.Skip();
     }
 }
 
 // Command execution
-void MainFrame::ExecuteCommand(const wxString& command) {
-    if (command == "front") {
+void MainFrame::ExecuteCommand(const wxString& command)
+{
+    if (command == "front")
+    {
         m_pGlCanvas->SetViewFront();
         AppendOutput("View: Front (rotation reset, facing +Z)");
     }
-    else if (command == "top") {
+    else if (command == "top")
+    {
         m_pGlCanvas->SetViewTop();
         AppendOutput("View: Top (looking down -Y axis)");
     }
-    else if (command == "side") {
+    else if (command == "side")
+    {
         m_pGlCanvas->SetViewSide();
         AppendOutput("View: Side (looking from +X axis)");
     }
-    else if (command == "iso" || command == "isometric") {
+    else if (command == "iso" || command == "isometric")
+    {
         m_pGlCanvas->SetViewIsometric();
         AppendOutput("View: Isometric (45° rotation on X and Y)");
     }
-    else if (command == "reset") {
+    else if (command == "reset")
+    {
         m_pGlCanvas->ResetView();
         AppendOutput("View: Reset to default position");
     }
-    else if (command == "help") {
+    else if (command == "help")
+    {
         AppendOutput("Available commands:");
         AppendOutput("  front      - View from front");
         AppendOutput("  top        - View from top");
@@ -287,7 +320,10 @@ void MainFrame::ExecuteCommand(const wxString& command) {
         AppendOutput("  reset      - Reset view to default");
         AppendOutput("  help       - Show this help message");
     }
-    else {
+    else
+    {
         AppendOutput("Error: Unknown command '" + command + "'. Type 'help' for available commands.");
     }
 }
+
+
