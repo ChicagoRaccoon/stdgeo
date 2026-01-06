@@ -11,6 +11,7 @@
 #include "Terminal.h"
 
 // TODO I don't know the best way or place to put these
+// TODO use dynamic event binding instead
 // Event IDs for toolbar buttons and controls
 enum
 {

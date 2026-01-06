@@ -17,6 +17,7 @@
 
 // TODO I don't know the best way or place to put these
 // TODO I think I need to read a bit more about how best to register these
+// TODO Use dynamic event registration instead
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_TOOL(ID_VIEW_FRONT    , Toolbar::OnViewFront    )
     EVT_TOOL(ID_VIEW_TOP      , Toolbar::OnViewTop      )
