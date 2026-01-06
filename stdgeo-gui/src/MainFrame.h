@@ -6,6 +6,7 @@
 #include <wx/wx.h>
 #include <wx/aui/aui.h>
 #include "GLCanvas.h"
+#include "Terminal.h"
 
 class MainFrame : public wxFrame
 {
@@ -13,7 +14,6 @@ public:
     MainFrame   (const wxString& title);
     ~MainFrame  (void);
 
-    void  AppendOutput  (const wxString& text);  // Add text to terminal
 
 private:
     // Event handlers for toolbar buttons
@@ -23,26 +23,15 @@ private:
     void  OnViewIsometric  (wxCommandEvent& event);
     void  OnResetView      (wxCommandEvent& event);
 
-    // Event handlers for terminal input
-    void  OnTerminalChar  (wxKeyEvent& event);
 
-    // Terminal helpers
-    void      ExecuteCommand        (const wxString& command);
-    void      ShowPrompt            (void);
-    wxString  GetCurrentLine        (void);
-    void      ClearCurrentLine      (void);
-    void      RestrictEditableArea  (void);
 
     // UI components
     wxAuiManager  m_auiManager;  // Manages dockable panes
     GLCanvas*     m_pGlCanvas;   // 3D rendering viewport
-    wxTextCtrl*   m_pTerminal;   // Terminal-style text control
+    Terminal*     m_pTerminal;   // Terminal-style text control
     wxToolBar*    m_pToolBar;    // View control toolbar
 
-    // Terminal state
-    long                   m_promptPos;     // Start position of current input
-    std::vector<wxString>  m_history;       // Command history
-    int                    m_historyIndex;  // Current position in history
+
 
     wxDECLARE_EVENT_TABLE();
 };

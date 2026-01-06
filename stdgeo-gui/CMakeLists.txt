@@ -54,13 +54,16 @@ set(SOURCES
     src/App.cpp
     src/MainFrame.cpp
     src/GLCanvas.cpp
+    src/Terminal.cpp
 )
 
 # Headers
 set(HEADERS
+    src/CommonHeader.h
     src/App.h
     src/MainFrame.h
     src/GLCanvas.h
+    src/Terminal.h
 )
 
 # Create executable
